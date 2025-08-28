@@ -2,71 +2,60 @@ import React, { useState } from 'react';
 import { Monitor, Moon, Sun, Code, ExternalLink, Activity } from 'lucide-react';
 import Header from './components/Header';
 import OverviewTable from './components/OverviewTable';
-import EnvironmentTabs from './components/EnvironmentTabs';
 import ModelGrid from './components/ModelGrid';
 import CodeViewer from './components/CodeViewer';
 import { useTheme } from './hooks/useTheme';
-
-// Mock data - will be replaced with AWS R2/Postgres connection
-const mockEnvironments = [
-  {
-    id: 'sat',
-    name: 'SAT',
-    description: 'Satellite tracking and control environment',
-    repoUrl: 'https://github.com/affine-subnet/sat-env',
-    models: [
-      { uid: 'uid_001', score: 195.6, epochs: 1200, last_updated: '2025-01-12T10:30:00Z', status: 'training', daily_rollouts: 24 },
-      { uid: 'uid_002', score: 187.3, epochs: 1100, last_updated: '2025-01-12T10:25:00Z', status: 'evaluating', daily_rollouts: 18 },
-      { uid: 'uid_003', score: 172.8, epochs: 950, last_updated: '2025-01-12T10:20:00Z', status: 'idle', daily_rollouts: 12 },
-    ]
-  },
-  {
-    id: 'abd',
-    name: 'ABD',
-    description: 'Autonomous behavior detection system',
-    repoUrl: 'https://github.com/affine-subnet/abd-env',
-    models: [
-      { uid: 'uid_004', score: 234.7, epochs: 1800, last_updated: '2025-01-12T10:35:00Z', status: 'training', daily_rollouts: 32 },
-      { uid: 'uid_005', score: 201.2, epochs: 1650, last_updated: '2025-01-12T10:30:00Z', status: 'training', daily_rollouts: 28 },
-      { uid: 'uid_006', score: 189.5, epochs: 1400, last_updated: '2025-01-12T10:25:00Z', status: 'evaluating', daily_rollouts: 15 },
-    ]
-  },
-  {
-    id: 'ded',
-    name: 'DED',
-    description: 'Dynamic environment detection',
-    repoUrl: 'https://github.com/affine-subnet/ded-env',
-    models: [
-      { uid: 'uid_007', score: -98.2, epochs: 2100, last_updated: '2025-01-12T10:40:00Z', status: 'training', daily_rollouts: 36 },
-      { uid: 'uid_008', score: -102.7, epochs: 1950, last_updated: '2025-01-12T10:35:00Z', status: 'idle', daily_rollouts: 22 },
-      { uid: 'uid_009', score: -115.4, epochs: 1700, last_updated: '2025-01-12T10:30:00Z', status: 'evaluating', daily_rollouts: 19 },
-    ]
-  },
-  {
-    id: 'elr',
-    name: 'ELR',
-    description: 'Enhanced learning and reasoning',
-    repoUrl: 'https://github.com/affine-subnet/elr-env',
-    models: [
-      { uid: 'uid_007', score: -98.2, epochs: 2100, last_updated: '2025-01-12T10:40:00Z', status: 'training', daily_rollouts: 36 },
-      { uid: 'uid_008', score: -102.7, epochs: 1950, last_updated: '2025-01-12T10:35:00Z', status: 'idle', daily_rollouts: 22 },
-      { uid: 'uid_009', score: -115.4, epochs: 1700, last_updated: '2025-01-12T10:30:00Z', status: 'evaluating', daily_rollouts: 19 },
-    ]
-  }
-];
+import { useModelsData } from './hooks/useModelsData';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
+  const { environments, models, loading, error, refetch } = useModelsData();
   const [activeTab, setActiveTab] = useState('overview');
   const [showCodeViewer, setShowCodeViewer] = useState(false);
-  const [selectedEnvironment, setSelectedEnvironment] = useState(mockEnvironments[0]);
+  const [selectedEnvironment, setSelectedEnvironment] = useState(environments[0]);
 
-  const currentEnvironment = mockEnvironments.find(env => env.id === activeTab) || mockEnvironments[0];
+  const currentEnvironment = environments.find(env => env.id === activeTab) || environments[0];
 
-  const handleViewCode = (environment: typeof mockEnvironments[0]) => {
+  const handleViewCode = (environment: typeof environments[0]) => {
     setSelectedEnvironment(environment);
     setShowCodeViewer(true);
   };
+
+  if (loading) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        theme === 'dark' ? 'bg-black text-white' : 'bg-cream-50 text-gray-800'
+      }`}>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-current mx-auto mb-4"></div>
+          <p className="font-mono text-sm uppercase tracking-wider">Loading dashboard data...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className={`min-h-screen flex items-center justify-center transition-colors duration-300 ${
+        theme === 'dark' ? 'bg-black text-white' : 'bg-cream-50 text-gray-800'
+      }`}>
+        <div className="text-center">
+          <p className="font-mono text-sm uppercase tracking-wider mb-4 text-red-500">Error loading data</p>
+          <p className="font-sans text-sm mb-4">{error}</p>
+          <button
+            onClick={refetch}
+            className={`px-4 py-2 border-2 font-mono text-xs uppercase tracking-wider transition-colors ${
+              theme === 'dark'
+                ? 'border-white text-white hover:bg-white hover:text-black'
+                : 'border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white'
+            }`}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen transition-colors duration-300 ${
@@ -98,7 +87,7 @@ function App() {
                 ALL MODELS
               </div>
             </button>
-            {mockEnvironments.map((env) => (
+            {environments.map((env) => (
               <button
                 key={env.id}
                 onClick={() => setActiveTab(env.id)}
@@ -125,7 +114,7 @@ function App() {
         {/* Tab Content */}
         {activeTab === 'overview' ? (
           <OverviewTable 
-            environments={mockEnvironments}
+            environments={environments}
             theme={theme}
           />
         ) : (
@@ -165,7 +154,7 @@ function App() {
 
             {/* Model Performance Grid */}
             <ModelGrid 
-              models={currentEnvironment.models}
+              models={currentEnvironment?.models || []}
               environmentId={currentEnvironment.id}
               theme={theme}
             />
@@ -175,7 +164,7 @@ function App() {
         {/* Code Viewer Modal */}
         {showCodeViewer && (
           <CodeViewer 
-            environment={selectedEnvironment}
+            environment={selectedEnvironment || environments[0]}
             theme={theme}
             onClose={() => setShowCodeViewer(false)}
           />
