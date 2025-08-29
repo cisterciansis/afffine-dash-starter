@@ -31,7 +31,7 @@ serve(async (req: Request) => {
 
     const client = new Client({ 
       connection: databaseUrl, 
-      ssl: { enforce: false } 
+      ssl: { enforce: true, tls: { allowUnverifiedCertificates: true } } 
     });
     await client.connect();
 
