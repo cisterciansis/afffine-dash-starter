@@ -29,7 +29,10 @@ serve(async (req: Request) => {
     const databaseUrl = Deno.env.get("DATABASE_URL") || 
       `postgresql://${username}:${password}@database-1.clo608s4ivev.us-east-1.rds.amazonaws.com:5432/postgres`;
 
-    const client = new Client(databaseUrl);
+    const client = new Client({ 
+      connection: databaseUrl, 
+      ssl: { enforce: false } 
+    });
     await client.connect();
 
     // Query for miner leaderboard data grouped by hotkey and model
