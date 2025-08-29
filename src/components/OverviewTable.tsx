@@ -3,8 +3,14 @@ import { ChevronDown, ChevronRight, Download, ExternalLink, Rocket } from 'lucid
 
 interface Model {
   uid: string;
+  hotkey: string;
   model: string;
   revision: string;
+  total_rollouts: number;
+  success_rate: number;
+  avg_latency: number;
+  miner_block: number;
+  recent_activity: number;
   epochs: number;
   last_updated: string;
   daily_rollouts: number;

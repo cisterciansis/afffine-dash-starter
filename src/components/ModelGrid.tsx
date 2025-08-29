@@ -3,11 +3,20 @@ import { Download, Activity, Eye, Code } from 'lucide-react';
 
 interface Model {
   uid: string;
+  hotkey: string;
+  model: string;
+  revision: string;
+  total_rollouts: number;
+  success_rate: number;
+  avg_latency: number;
   score: number;
   epochs: number;
   last_updated: string;
   status: 'training' | 'evaluating' | 'idle';
   daily_rollouts: number;
+  miner_block: number;
+  recent_activity: number;
+  environment: string;
   live_metrics?: {
     current_loss: number;
     learning_rate: number;

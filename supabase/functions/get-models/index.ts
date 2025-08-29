@@ -16,7 +16,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    // Database connection logic
+    // Database connection logic based on your configuration
     const r2Key = Deno.env.get("R2_WRITE_SECRET_ACCESS_KEY");
     let username = "app_reader";
     let password = "ca35a0d8bd31d0d5";
@@ -32,50 +32,90 @@ serve(async (req: Request) => {
     const client = new Client(databaseUrl);
     await client.connect();
 
-    // Query for models data - you'll need to adjust these queries based on your actual table structure
-    const modelsQuery = `
-      SELECT 
-        uid,
-        score,
-        epochs,
-        last_updated,
-        status,
-        daily_rollouts,
-        environment
-      FROM models 
-      ORDER BY score DESC
+    // Query for miner leaderboard data grouped by hotkey and model
+    const minersQuery = `
+      SELECT
+          hotkey,
+          MAX(uid) AS last_seen_uid,
+          model,
+          revision,
+          env_name,
+          COUNT(*) AS total_rollouts,
+          AVG(score) AS average_score,
+          (SUM(CASE WHEN success THEN 1 ELSE 0 END)::float / COUNT(*)) * 100 AS success_rate_percent,
+          AVG(latency_seconds) as avg_latency,
+          MAX(ingested_at) as last_updated,
+          COUNT(CASE WHEN ingested_at >= NOW() - INTERVAL '1 day' THEN 1 END) as daily_rollouts,
+          MAX(miner_block) as miner_block,
+          COUNT(CASE WHEN ingested_at >= NOW() - INTERVAL '1 hour' THEN 1 END) as recent_activity
+      FROM
+          public.affine_results
+      WHERE 
+          ingested_at >= NOW() - INTERVAL '7 days'  -- Focus on recent data
+      GROUP BY
+          hotkey, model, revision, env_name
+      ORDER BY
+          average_score DESC, total_rollouts DESC;
     `;
 
+    // Query for environment information
     const environmentsQuery = `
-      SELECT DISTINCT 
-        environment as id,
-        environment as name,
-        COUNT(*) as model_count
-      FROM models 
-      GROUP BY environment
+      SELECT 
+          env_name,
+          env_version,
+          COUNT(DISTINCT hotkey) as unique_miners,
+          COUNT(*) as total_rollouts,
+          AVG(score) as avg_score,
+          MAX(ingested_at) as last_activity
+      FROM public.affine_results 
+      WHERE ingested_at >= NOW() - INTERVAL '7 days'
+      GROUP BY env_name, env_version
+      ORDER BY env_name;
     `;
 
-    const modelsResult = await client.queryArray(modelsQuery);
+    const minersResult = await client.queryArray(minersQuery);
     const environmentsResult = await client.queryArray(environmentsQuery);
 
-    // Transform data to match frontend expectations
-    const models = modelsResult.rows.map((row: any[]) => ({
-      uid: row[0],
-      score: parseFloat(row[1]) || 0,
-      epochs: parseInt(row[2]) || 0,
-      last_updated: row[3] || new Date().toISOString(),
-      status: row[4] || 'idle',
-      daily_rollouts: parseInt(row[5]) || 0,
-      environment: row[6] || 'unknown'
+    // Transform miners data to match frontend expectations
+    const miners = minersResult.rows.map((row: any[]) => ({
+      uid: row[1]?.toString() || 'unknown', // last_seen_uid
+      hotkey: row[0], // primary identifier
+      model: row[2] || 'unknown',
+      revision: row[3] || 'v1.0',
+      environment: row[4] || 'unknown',
+      total_rollouts: parseInt(row[5]) || 0,
+      score: parseFloat(row[6]) || 0,
+      success_rate: parseFloat(row[7]) || 0,
+      avg_latency: parseFloat(row[8]) || 0,
+      last_updated: row[9] || new Date().toISOString(),
+      daily_rollouts: parseInt(row[10]) || 0,
+      miner_block: parseInt(row[11]) || 0,
+      recent_activity: parseInt(row[12]) || 0,
+      // Determine status based on recent activity
+      status: parseInt(row[12]) > 0 ? 'training' : 'idle',
+      // Calculate epochs approximation from total rollouts
+      epochs: Math.floor((parseInt(row[5]) || 0) / 100) // Rough estimate
     }));
 
-    const environments = environmentsResult.rows.map((row: any[]) => ({
-      id: row[0],
-      name: row[0],
-      description: getEnvironmentDescription(row[0]),
-      repoUrl: `https://github.com/affine-subnet/${row[0].toLowerCase()}-env`,
-      models: models.filter(m => m.environment === row[0])
-    }));
+    // Transform environments data
+    const environments = environmentsResult.rows.map((row: any[]) => {
+      const envName = row[0];
+      const envMiners = miners.filter(m => m.environment === envName);
+      
+      return {
+        id: envName.toLowerCase(),
+        name: envName,
+        description: getEnvironmentDescription(envName),
+        repoUrl: `https://github.com/affine-subnet/${envName.toLowerCase()}-env`,
+        models: envMiners,
+        stats: {
+          unique_miners: parseInt(row[2]) || 0,
+          total_rollouts: parseInt(row[3]) || 0,
+          avg_score: parseFloat(row[4]) || 0,
+          last_activity: row[5] || new Date().toISOString()
+        }
+      };
+    });
 
     await client.end();
 
@@ -83,7 +123,9 @@ serve(async (req: Request) => {
       JSON.stringify({ 
         success: true, 
         environments,
-        models 
+        models: miners,
+        total_miners: miners.length,
+        timestamp: new Date().toISOString()
       }),
       {
         headers: {
@@ -99,7 +141,8 @@ serve(async (req: Request) => {
     return new Response(
       JSON.stringify({ 
         success: false, 
-        error: error.message 
+        error: error.message,
+        timestamp: new Date().toISOString()
       }),
       {
         status: 500,
@@ -114,11 +157,13 @@ serve(async (req: Request) => {
 
 function getEnvironmentDescription(envName: string): string {
   const descriptions: { [key: string]: string } = {
-    'SAT': 'Satellite tracking and control environment',
-    'ABD': 'Autonomous behavior detection system', 
-    'DED': 'Dynamic environment detection',
-    'ELR': 'Enhanced learning and reasoning'
+    'SAT': 'Satellite tracking and orbital mechanics environment',
+    'ABD': 'Autonomous behavior detection and classification', 
+    'DED': 'Dynamic environment detection and adaptation',
+    'ELR': 'Enhanced learning and reasoning capabilities',
+    'MATH': 'Mathematical problem solving and computation',
+    'LOGIC': 'Logical reasoning and inference tasks'
   };
   
-  return descriptions[envName.toUpperCase()] || `${envName} environment for reinforcement learning`;
-}
+  return descriptions[envName.toUpperCase()] || `${envName} reinforcement learning environment`;
+}</parameter>

@@ -2,12 +2,20 @@ import { useState, useEffect } from 'react';
 
 interface Model {
   uid: string;
+  hotkey: string;
+  model: string;
+  revision: string;
+  environment: string;
+  total_rollouts: number;
   score: number;
-  epochs: number;
+  success_rate: number;
+  avg_latency: number;
   last_updated: string;
   status: 'training' | 'evaluating' | 'idle';
   daily_rollouts: number;
-  environment: string;
+  miner_block: number;
+  recent_activity: number;
+  epochs: number;
 }
 
 interface Environment {
