@@ -218,9 +218,6 @@ const EnvironmentPage: React.FC = () => {
         </div>
       </div>
 
-      <TopMinersTrendChart env={envName} theme={theme} />
-      <ScoreDistributionHistogram env={envName} theme={theme} />
-      <LatencyBoxPlot env={envName} theme={theme} />
 
       {/* Top Models Table for this Environment */}
       <div className={`border-2 rounded-none overflow-x-auto ${
@@ -324,6 +321,9 @@ const EnvironmentPage: React.FC = () => {
           )}
         </div>
       </div>
+      <TopMinersTrendChart env={envName} theme={theme} />
+      <ScoreDistributionHistogram env={envName} theme={theme} />
+      <LatencyBoxPlot env={envName} theme={theme} />
     </div>
   );
 };
