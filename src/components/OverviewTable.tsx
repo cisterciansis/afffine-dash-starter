@@ -3,6 +3,7 @@ import { ChevronDown, ChevronRight, Check, MoreVertical } from 'lucide-react';
 import { fetchSubnetOverview, SubnetOverviewRow } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useEnvironments } from '../contexts/EnvironmentsContext';
+import { Skeleton, SkeletonText } from './Skeleton';
 
 interface OverviewTableProps {
   environments?: any[]; // kept for compatibility with existing App.tsx; not used
@@ -123,7 +124,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              {loading ? '...' : rows.length}
+              {loading ? <Skeleton theme={theme} className="h-6 w-12 mx-auto" /> : rows.length}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -135,7 +136,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-green-400' : 'text-green-600'
             }`}>
-              {loading ? '...' : rows.filter(r => r.eligible).length}
+              {loading ? <Skeleton theme={theme} className="h-6 w-12 mx-auto" /> : rows.filter(r => r.eligible).length}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -147,7 +148,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              {envLoading ? '...' : envs.length}
+              {envLoading ? <Skeleton theme={theme} className="h-6 w-12 mx-auto" /> : envs.length}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -241,8 +242,31 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             </div>
           )}
           {loading && !errorMsg && (
-            <div className={`p-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Loading...
+            <div className="divide-y-2 divide-gray-300">
+              {Array.from({ length: Math.min(pageSize, 10) }).map((_, i) => (
+                <div key={i}>
+                  {/* Main Row Skeleton */}
+                  <div className={`p-3 ${theme === 'dark' ? 'hover:bg-gray-800/40' : 'hover:bg-cream-50/60'}`}>
+                    <div className={`${gridCols} text-center`}>
+                      <SkeletonText theme={theme} className="h-4 w-12 mx-auto" />
+                      <div className="text-left">
+                        <SkeletonText theme={theme} className="h-4 w-48" />
+                      </div>
+                      <SkeletonText theme={theme} className="h-3 w-10 mx-auto" />
+                      <SkeletonText theme={theme} className="h-4 w-12 mx-auto" />
+                      <SkeletonText theme={theme} className="h-4 w-12 mx-auto" />
+                      <SkeletonText theme={theme} className="h-4 w-16 mx-auto" />
+                      <div className="flex items-center justify-center">
+                        <Skeleton theme={theme} className="h-4 w-4 rounded-full" />
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <Skeleton theme={theme} className="h-8 w-8" />
+                        <Skeleton theme={theme} className="h-8 w-8" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
           )}
           {!loading && !errorMsg && pagedRows.map((model) => (

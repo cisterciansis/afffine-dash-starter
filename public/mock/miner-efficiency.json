@@ -1,0 +1,17 @@
+[
+  { "hotkey": "hk_01abcdef", "model": "model-A-7B", "avg_score": 0.84, "avg_latency": 1.25 },
+  { "hotkey": "hk_02bcdefa", "model": "model-B-8x7B", "avg_score": 0.72, "avg_latency": 0.95 },
+  { "hotkey": "hk_03cdefab", "model": "model-C-13B", "avg_score": 0.66, "avg_latency": 0.72 },
+  { "hotkey": "hk_04defabc", "model": "model-D-70B", "avg_score": 0.91, "avg_latency": 2.10 },
+  { "hotkey": "hk_05efabcd", "model": "model-E-8B", "avg_score": 0.58, "avg_latency": 0.63 },
+  { "hotkey": "hk_06fabcde", "model": "model-F-34B", "avg_score": 0.79, "avg_latency": 1.05 },
+  { "hotkey": "hk_07abcdef", "model": "model-G-7B", "avg_score": 0.62, "avg_latency": 0.54 },
+  { "hotkey": "hk_08bcdefa", "model": "model-H-13B", "avg_score": 0.74, "avg_latency": 1.48 },
+  { "hotkey": "hk_09cdefab", "model": "model-I-8x7B", "avg_score": 0.81, "avg_latency": 1.32 },
+  { "hotkey": "hk_10defabc", "model": "model-J-7B", "avg_score": 0.69, "avg_latency": 0.47 },
+  { "hotkey": "hk_11efabcd", "model": "model-K-70B", "avg_score": 0.88, "avg_latency": 1.92 },
+  { "hotkey": "hk_12fabcde", "model": "model-L-13B", "avg_score": 0.71, "avg_latency": 0.89 },
+  { "hotkey": "hk_13abcdef", "model": "model-M-8B", "avg_score": 0.55, "avg_latency": 0.42 },
+  { "hotkey": "hk_14bcdefa", "model": "model-N-34B", "avg_score": 0.77, "avg_latency": 1.18 },
+  { "hotkey": "hk_15cdefab", "model": "model-O-7B", "avg_score": 0.64, "avg_latency": 0.51 }
+]

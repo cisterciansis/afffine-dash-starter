@@ -150,7 +150,7 @@ __all__ = ['${environment.name.replace('-', '')}Environment']`;
               <span className={`font-mono text-xs ${
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
               }`}>
-                Python 3.9+ • OpenAI Gym
+                Python 3.9+ • Affine Gym
               </span>
             </div>
           </div>

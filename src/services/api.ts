@@ -43,6 +43,41 @@ export type DailyRolloutsByModelRow = {
   daily_rollouts: number;
 };
 
+export type NetworkActivityRow = {
+  period: string; // ISO date at day granularity
+  total_rollouts: number;
+  average_score: number;
+};
+
+export type EnvironmentStatsRow = {
+  env_name: string;
+  total_rollouts: number;
+  success_rate: number; // percent 0-100
+};
+
+export type MinerEfficiencyRow = {
+  hotkey: string;
+  model: string;
+  avg_score: number;
+  avg_latency: number | null;
+};
+
+export type TopMinersByEnvRow = {
+  period: string; // YYYY-MM-DD
+  hotkey: string;
+  average_score: number;
+};
+
+export type ScoreDistributionByEnvRow = {
+  score_bucket: number; // 1..10
+  number_of_miners: number;
+};
+
+export type LatencyDistributionByEnvRow = {
+  hotkey: string;
+  latency_seconds: number;
+};
+
 async function getJSON<T>(path: string): Promise<T> {
   try {
     const res = await fetch(path, { method: 'GET' });
@@ -68,8 +103,17 @@ async function getJSON<T>(path: string): Promise<T> {
       '/api/results-over-time': '/mock/results-over-time.json',
       '/api/daily-rollouts-by-model': '/mock/daily-rollouts-by-model.json',
       '/api/environments': '/mock/environments.json',
+      '/api/network-activity': '/mock/network-activity.json',
+      '/api/environment-stats': '/mock/environment-stats.json',
+      '/api/miner-efficiency': '/mock/miner-efficiency.json',
+      // New env-specific endpoints (querystring stripped below)
+      '/api/top-miners-by-env': '/mock/top-miners-by-env.json',
+      '/api/score-distribution-by-env': '/mock/score-distribution-by-env.json',
+      '/api/latency-distribution-by-env': '/mock/latency-distribution-by-env.json',
     };
-    const mockPath = mockMap[path];
+    // Support querystring paths by mapping base path to mock file
+    const basePath = path.split('?')[0];
+    const mockPath = mockMap[basePath];
     if (mockPath) {
       const mockRes = await fetch(mockPath, { method: 'GET' });
       if (!mockRes.ok) {
@@ -122,6 +166,18 @@ export function fetchDailyRolloutsByModel() {
   return getJSON<DailyRolloutsByModelRow[]>('/api/daily-rollouts-by-model');
 }
 
+export function fetchNetworkActivity() {
+  return getJSON<NetworkActivityRow[]>('/api/network-activity');
+}
+
+export function fetchEnvironmentStats() {
+  return getJSON<EnvironmentStatsRow[]>('/api/environment-stats');
+}
+
+export function fetchMinerEfficiency() {
+  return getJSON<MinerEfficiencyRow[]>('/api/miner-efficiency');
+}
+
 /**
  * Subnet Overview row type from /api/subnet-overview
  * Note: sat/abd/ded/elr/overall_avg_score may be null if no data exists for that env; avg_latency may be null.
@@ -160,4 +216,16 @@ export type EnvironmentsResponse = string[];
  */
 export function fetchEnvironments() {
   return getJSON<EnvironmentsResponse>('/api/environments');
+}
+
+export function fetchTopMinersByEnv(env: string) {
+  return getJSON<TopMinersByEnvRow[]>(`/api/top-miners-by-env?env=${encodeURIComponent(env)}`);
+}
+
+export function fetchScoreDistributionByEnv(env: string) {
+  return getJSON<ScoreDistributionByEnvRow[]>(`/api/score-distribution-by-env?env=${encodeURIComponent(env)}`);
+}
+
+export function fetchLatencyDistributionByEnv(env: string) {
+  return getJSON<LatencyDistributionByEnvRow[]>(`/api/latency-distribution-by-env?env=${encodeURIComponent(env)}`);
 }

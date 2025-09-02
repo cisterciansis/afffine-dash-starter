@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { fetchActivity, type ActivityRow } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { RefreshCw } from 'lucide-react';
+import { Skeleton, SkeletonText } from './Skeleton';
 
 type Theme = 'light' | 'dark';
 
@@ -60,8 +61,32 @@ const ActivityFeed: React.FC<ActivityFeedProps> = ({ theme, limit = 10 }) => {
 
       <div className="p-4">
         {isLoading && (
-          <div className={`text-sm font-mono ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-            Loading activity…
+          <div className="divide-y divide-gray-300">
+            {Array.from({ length: Math.min(limit, 8) }).map((_, i) => (
+              <div
+                key={i}
+                className={`py-3 grid grid-cols-12 gap-2 items-center ${theme === 'dark' ? 'text-gray-200' : 'text-gray-800'}`}
+              >
+                <div className="col-span-3">
+                  <SkeletonText theme={theme} className="h-3 w-24 mb-1" />
+                  <SkeletonText theme={theme} className="h-2 w-16" />
+                </div>
+                <div className="col-span-3">
+                  <SkeletonText theme={theme} className="h-3 w-28 mb-1" />
+                  <SkeletonText theme={theme} className="h-2 w-24" />
+                </div>
+                <div className="col-span-2">
+                  <SkeletonText theme={theme} className="h-3 w-16" />
+                </div>
+                <div className="col-span-2 text-right">
+                  <SkeletonText theme={theme} className="h-3 w-12 ml-auto mb-1" />
+                  <SkeletonText theme={theme} className="h-2 w-10 ml-auto" />
+                </div>
+                <div className="col-span-2 text-right">
+                  <Skeleton theme={theme} className="h-2 w-2 rounded-full ml-auto" />
+                </div>
+              </div>
+            ))}
           </div>
         )}
 

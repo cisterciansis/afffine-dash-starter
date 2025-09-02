@@ -6,6 +6,9 @@ import ActivityFeed from './components/ActivityFeed';
 import { useTheme } from './hooks/useTheme';
 import { useEnvironments } from './contexts/EnvironmentsContext';
 import EnvironmentPage from './pages/EnvironmentPage';
+import NetworkActivityChart from './components/NetworkActivityChart';
+import EnvironmentStatsChart from './components/EnvironmentStatsChart';
+import MinerEfficiencyChart from './components/MinerEfficiencyChart';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -273,12 +276,20 @@ function App() {
           <Route
             path="/"
             element={
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 order-1">
-                  <OverviewTable theme={theme} />
+              <div className="space-y-6">
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <div className="lg:col-span-2 order-1">
+                    <OverviewTable theme={theme} />
+                  </div>
+                  <div className="lg:col-span-1 order-2">
+                    <ActivityFeed theme={theme} />
+                  </div>
                 </div>
-                <div className="lg:col-span-1 order-2">
-                  <ActivityFeed theme={theme} />
+
+                <div className="space-y-6">
+                  <NetworkActivityChart theme={theme} />
+                  <EnvironmentStatsChart theme={theme} />
+                  <MinerEfficiencyChart theme={theme} />
                 </div>
               </div>
             }

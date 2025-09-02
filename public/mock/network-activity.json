@@ -1,0 +1,16 @@
+[
+  { "period": "2025-08-20", "total_rollouts": 480, "average_score": 0.62 },
+  { "period": "2025-08-21", "total_rollouts": 505, "average_score": 0.63 },
+  { "period": "2025-08-22", "total_rollouts": 530, "average_score": 0.64 },
+  { "period": "2025-08-23", "total_rollouts": 550, "average_score": 0.64 },
+  { "period": "2025-08-24", "total_rollouts": 515, "average_score": 0.65 },
+  { "period": "2025-08-25", "total_rollouts": 520, "average_score": 0.66 },
+  { "period": "2025-08-26", "total_rollouts": 610, "average_score": 0.66 },
+  { "period": "2025-08-27", "total_rollouts": 575, "average_score": 0.65 },
+  { "period": "2025-08-28", "total_rollouts": 640, "average_score": 0.67 },
+  { "period": "2025-08-29", "total_rollouts": 690, "average_score": 0.68 },
+  { "period": "2025-08-30", "total_rollouts": 710, "average_score": 0.69 },
+  { "period": "2025-08-31", "total_rollouts": 745, "average_score": 0.70 },
+  { "period": "2025-09-01", "total_rollouts": 780, "average_score": 0.71 },
+  { "period": "2025-09-02", "total_rollouts": 765, "average_score": 0.72 }
+]

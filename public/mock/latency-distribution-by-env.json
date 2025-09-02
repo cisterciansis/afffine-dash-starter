@@ -1,0 +1,36 @@
+[
+  { "hotkey": "hk_alpha", "latency_seconds": 0.82 },
+  { "hotkey": "hk_alpha", "latency_seconds": 0.77 },
+  { "hotkey": "hk_alpha", "latency_seconds": 0.91 },
+  { "hotkey": "hk_alpha", "latency_seconds": 0.86 },
+  { "hotkey": "hk_alpha", "latency_seconds": 0.88 },
+  { "hotkey": "hk_alpha", "latency_seconds": 0.73 },
+
+  { "hotkey": "hk_beta", "latency_seconds": 1.12 },
+  { "hotkey": "hk_beta", "latency_seconds": 1.05 },
+  { "hotkey": "hk_beta", "latency_seconds": 0.98 },
+  { "hotkey": "hk_beta", "latency_seconds": 1.20 },
+  { "hotkey": "hk_beta", "latency_seconds": 1.08 },
+  { "hotkey": "hk_beta", "latency_seconds": 1.15 },
+
+  { "hotkey": "hk_gamma", "latency_seconds": 0.55 },
+  { "hotkey": "hk_gamma", "latency_seconds": 0.62 },
+  { "hotkey": "hk_gamma", "latency_seconds": 0.58 },
+  { "hotkey": "hk_gamma", "latency_seconds": 0.61 },
+  { "hotkey": "hk_gamma", "latency_seconds": 0.57 },
+  { "hotkey": "hk_gamma", "latency_seconds": 0.63 },
+
+  { "hotkey": "hk_delta", "latency_seconds": 1.45 },
+  { "hotkey": "hk_delta", "latency_seconds": 1.32 },
+  { "hotkey": "hk_delta", "latency_seconds": 1.41 },
+  { "hotkey": "hk_delta", "latency_seconds": 1.37 },
+  { "hotkey": "hk_delta", "latency_seconds": 1.50 },
+  { "hotkey": "hk_delta", "latency_seconds": 1.29 },
+
+  { "hotkey": "hk_epsilon", "latency_seconds": 0.95 },
+  { "hotkey": "hk_epsilon", "latency_seconds": 1.02 },
+  { "hotkey": "hk_epsilon", "latency_seconds": 0.99 },
+  { "hotkey": "hk_epsilon", "latency_seconds": 1.08 },
+  { "hotkey": "hk_epsilon", "latency_seconds": 0.93 },
+  { "hotkey": "hk_epsilon", "latency_seconds": 1.10 }
+]

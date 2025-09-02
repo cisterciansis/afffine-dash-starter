@@ -1,0 +1,12 @@
+[
+  { "score_bucket": 1, "number_of_miners": 2 },
+  { "score_bucket": 2, "number_of_miners": 5 },
+  { "score_bucket": 3, "number_of_miners": 9 },
+  { "score_bucket": 4, "number_of_miners": 12 },
+  { "score_bucket": 5, "number_of_miners": 16 },
+  { "score_bucket": 6, "number_of_miners": 14 },
+  { "score_bucket": 7, "number_of_miners": 10 },
+  { "score_bucket": 8, "number_of_miners": 6 },
+  { "score_bucket": 9, "number_of_miners": 3 },
+  { "score_bucket": 10, "number_of_miners": 1 }
+]
