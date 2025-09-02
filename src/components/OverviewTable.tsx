@@ -34,8 +34,8 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   // Environments from global context (dynamic)
   const { environments: envs, loading: envLoading } = useEnvironments();
 
-  // Dynamic CSS grid template columns: adds one 72px column per environment between "Rev" and the aggregate stats
-  const gridTemplateColumns = `72px minmax(0,1fr) 72px ${envs.map(() => '72px').join(' ')} 88px 96px 120px 72px 112px`;
+  // Fixed column layout to keep table compact and readable across widths.
+  const gridCols = 'grid grid-cols-[72px_minmax(0,1fr)_72px_88px_96px_120px_72px_112px] gap-2 items-center';
 
   // Computed pagination values
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -221,13 +221,10 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
         <div className={`p-3 border-b-2 ${
           theme === 'dark' ? 'border-white bg-gray-900' : 'border-gray-300 bg-cream-50'
         }`}>
-          <div className="grid gap-2 items-center text-center" style={{ gridTemplateColumns }}>
+          <div className={`${gridCols} text-center`}>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>UID</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold text-left ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Model</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rev</div>
-            {envs.map((env) => (
-              <div key={env} className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{env}</div>
-            ))}
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Score</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Success %</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Latency (s)</div>
@@ -254,7 +251,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
               <div className={`p-3 hover:bg-opacity-50 transition-colors ${
                 theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-cream-50'
               }`}>
-                <div className="grid gap-2 items-center text-center" style={{ gridTemplateColumns }}>
+                <div className={`${gridCols} text-center`}>
                   <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {String(model.uid)}
                   </div>
@@ -264,18 +261,6 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                   <div className={`text-xs font-mono whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} title={model.rev}>
                     {midTrunc(String(model.rev), 10)}
                   </div>
-                  {envs.map((env) => {
-                    const key = env.toLowerCase();
-                    const score = (model as any)[key] as number | null | undefined;
-                    return (
-                      <div
-                        key={env}
-                        className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
-                      >
-                        {fmt(score)}
-                      </div>
-                    );
-                  })}
                   <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {fmt(model.overall_avg_score)}
                   </div>
