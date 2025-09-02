@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Check, MoreVertical } from 'lucide-react';
 import { fetchSubnetOverview, SubnetOverviewRow } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
+import { useEnvironments } from '../contexts/EnvironmentsContext';
 
 interface OverviewTableProps {
   environments?: any[]; // kept for compatibility with existing App.tsx; not used
@@ -30,8 +31,11 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   // Pagination state
   const [pageSize, setPageSize] = useState<number>(20);
   const [page, setPage] = useState<number>(1);
-  // Fixed column layout to keep table compact and readable across widths.
-  const gridCols = 'grid grid-cols-[72px_minmax(0,1fr)_72px_88px_96px_120px_72px_112px] gap-2 items-center';
+  // Environments from global context (dynamic)
+  const { environments: envs, loading: envLoading } = useEnvironments();
+
+  // Dynamic CSS grid template columns: adds one 72px column per environment between "Rev" and the aggregate stats
+  const gridTemplateColumns = `72px minmax(0,1fr) 72px ${envs.map(() => '72px').join(' ')} 88px 96px 120px 72px 112px`;
 
   // Computed pagination values
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
@@ -143,7 +147,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              4
+              {envLoading ? '...' : envs.length}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -217,10 +221,13 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
         <div className={`p-3 border-b-2 ${
           theme === 'dark' ? 'border-white bg-gray-900' : 'border-gray-300 bg-cream-50'
         }`}>
-          <div className={`${gridCols} text-center`}>
+          <div className="grid gap-2 items-center text-center" style={{ gridTemplateColumns }}>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>UID</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold text-left ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Model</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rev</div>
+            {envs.map((env) => (
+              <div key={env} className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>{env}</div>
+            ))}
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Score</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Success %</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Latency (s)</div>
@@ -247,7 +254,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
               <div className={`p-3 hover:bg-opacity-50 transition-colors ${
                 theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-cream-50'
               }`}>
-                <div className={`${gridCols} text-center`}>
+                <div className="grid gap-2 items-center text-center" style={{ gridTemplateColumns }}>
                   <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {String(model.uid)}
                   </div>
@@ -257,6 +264,18 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                   <div className={`text-xs font-mono whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} title={model.rev}>
                     {midTrunc(String(model.rev), 10)}
                   </div>
+                  {envs.map((env) => {
+                    const key = env.toLowerCase();
+                    const score = (model as any)[key] as number | null | undefined;
+                    return (
+                      <div
+                        key={env}
+                        className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}
+                      >
+                        {fmt(score)}
+                      </div>
+                    );
+                  })}
                   <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
                     {fmt(model.overall_avg_score)}
                   </div>
@@ -393,10 +412,13 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                     <div><span className="font-bold">Avg Latency (s):</span> {model.avg_latency == null ? dash : model.avg_latency.toFixed(2)}</div>
                     <div><span className="font-bold">Total Rollouts:</span> {model.total_rollouts.toLocaleString()}</div>
                     <div><span className="font-bold">Eligible:</span> {model.eligible ? 'Yes' : 'No'}</div>
-                    <div><span className="font-bold">SAT:</span> {fmt(model.sat)}</div>
-                    <div><span className="font-bold">ABD:</span> {fmt(model.abd)}</div>
-                    <div><span className="font-bold">DED:</span> {fmt(model.ded)}</div>
-                    <div><span className="font-bold">ELR:</span> {fmt(model.elr)}</div>
+                    {envs.map((env) => {
+                      const key = env.toLowerCase();
+                      const score = (model as any)[key] as number | null | undefined;
+                      return (
+                        <div key={env}><span className="font-bold">{env}:</span> {fmt(score)}</div>
+                      );
+                    })}
                   </div>
                 </div>
               )}

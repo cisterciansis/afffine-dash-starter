@@ -67,6 +67,7 @@ async function getJSON<T>(path: string): Promise<T> {
       '/api/performance-by-env': '/mock/performance-by-env.json',
       '/api/results-over-time': '/mock/results-over-time.json',
       '/api/daily-rollouts-by-model': '/mock/daily-rollouts-by-model.json',
+      '/api/environments': '/mock/environments.json',
     };
     const mockPath = mockMap[path];
     if (mockPath) {
@@ -149,4 +150,14 @@ export type SubnetOverviewRow = {
  */
 export function fetchSubnetOverview() {
   return getJSON<SubnetOverviewRow[]>('/api/subnet-overview');
+}
+
+export type EnvironmentsResponse = string[];
+
+/**
+ * Fetch list of active environments (simple array of strings).
+ * GET /api/environments
+ */
+export function fetchEnvironments() {
+  return getJSON<EnvironmentsResponse>('/api/environments');
 }
