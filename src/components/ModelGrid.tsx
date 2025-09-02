@@ -6,7 +6,7 @@ interface Model {
   score: number;
   epochs: number;
   last_updated: string;
-  status: 'training' | 'evaluating' | 'idle';
+  status: string;
   daily_rollouts: number;
   live_metrics?: {
     current_loss: number;

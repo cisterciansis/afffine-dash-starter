@@ -1,0 +1,9 @@
+[
+  { "period": "2025-08-25", "total_rollouts": 520, "average_score": 0.64 },
+  { "period": "2025-08-26", "total_rollouts": 610, "average_score": 0.66 },
+  { "period": "2025-08-27", "total_rollouts": 575, "average_score": 0.65 },
+  { "period": "2025-08-28", "total_rollouts": 640, "average_score": 0.67 },
+  { "period": "2025-08-29", "total_rollouts": 690, "average_score": 0.68 },
+  { "period": "2025-08-30", "total_rollouts": 710, "average_score": 0.69 },
+  { "period": "2025-08-31", "total_rollouts": 745, "average_score": 0.70 }
+]

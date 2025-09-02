@@ -1,0 +1,47 @@
+[
+  {
+    "hotkey": "hk_alpha",
+    "last_seen_uid": 345,
+    "model": "affine-small-1",
+    "total_rollouts": 1250,
+    "average_score": 0.689,
+    "success_rate_percent": 82.5,
+    "avg_latency": 1.23
+  },
+  {
+    "hotkey": "hk_gamma",
+    "last_seen_uid": 612,
+    "model": "affine-large-3",
+    "total_rollouts": 1980,
+    "average_score": 0.756,
+    "success_rate_percent": 91.2,
+    "avg_latency": 0.95
+  },
+  {
+    "hotkey": "hk_beta",
+    "last_seen_uid": 278,
+    "model": "affine-base-2",
+    "total_rollouts": 980,
+    "average_score": 0.609,
+    "success_rate_percent": 60.3,
+    "avg_latency": 1.80
+  },
+  {
+    "hotkey": "hk_delta",
+    "last_seen_uid": 150,
+    "model": "affine-x-4",
+    "total_rollouts": 765,
+    "average_score": 0.645,
+    "success_rate_percent": 74.0,
+    "avg_latency": 1.10
+  },
+  {
+    "hotkey": "hk_epsilon",
+    "last_seen_uid": 402,
+    "model": "affine-pro-5",
+    "total_rollouts": 1450,
+    "average_score": 0.702,
+    "success_rate_percent": 85.9,
+    "avg_latency": 1.05
+  }
+]

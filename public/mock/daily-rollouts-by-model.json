@@ -1,0 +1,33 @@
+[
+  { "day": "2025-08-25", "model": "affine-small-1", "daily_rollouts": 120 },
+  { "day": "2025-08-26", "model": "affine-small-1", "daily_rollouts": 140 },
+  { "day": "2025-08-27", "model": "affine-small-1", "daily_rollouts": 135 },
+  { "day": "2025-08-28", "model": "affine-small-1", "daily_rollouts": 150 },
+  { "day": "2025-08-29", "model": "affine-small-1", "daily_rollouts": 160 },
+  { "day": "2025-08-30", "model": "affine-small-1", "daily_rollouts": 155 },
+  { "day": "2025-08-31", "model": "affine-small-1", "daily_rollouts": 165 },
+
+  { "day": "2025-08-25", "model": "affine-base-2", "daily_rollouts": 90 },
+  { "day": "2025-08-26", "model": "affine-base-2", "daily_rollouts": 100 },
+  { "day": "2025-08-27", "model": "affine-base-2", "daily_rollouts": 95 },
+  { "day": "2025-08-28", "model": "affine-base-2", "daily_rollouts": 110 },
+  { "day": "2025-08-29", "model": "affine-base-2", "daily_rollouts": 115 },
+  { "day": "2025-08-30", "model": "affine-base-2", "daily_rollouts": 120 },
+  { "day": "2025-08-31", "model": "affine-base-2", "daily_rollouts": 125 },
+
+  { "day": "2025-08-25", "model": "affine-large-3", "daily_rollouts": 150 },
+  { "day": "2025-08-26", "model": "affine-large-3", "daily_rollouts": 160 },
+  { "day": "2025-08-27", "model": "affine-large-3", "daily_rollouts": 170 },
+  { "day": "2025-08-28", "model": "affine-large-3", "daily_rollouts": 175 },
+  { "day": "2025-08-29", "model": "affine-large-3", "daily_rollouts": 180 },
+  { "day": "2025-08-30", "model": "affine-large-3", "daily_rollouts": 185 },
+  { "day": "2025-08-31", "model": "affine-large-3", "daily_rollouts": 190 },
+
+  { "day": "2025-08-25", "model": "affine-x-4", "daily_rollouts": 60 },
+  { "day": "2025-08-26", "model": "affine-x-4", "daily_rollouts": 65 },
+  { "day": "2025-08-27", "model": "affine-x-4", "daily_rollouts": 70 },
+  { "day": "2025-08-28", "model": "affine-x-4", "daily_rollouts": 75 },
+  { "day": "2025-08-29", "model": "affine-x-4", "daily_rollouts": 80 },
+  { "day": "2025-08-30", "model": "affine-x-4", "daily_rollouts": 85 },
+  { "day": "2025-08-31", "model": "affine-x-4", "daily_rollouts": 90 }
+]

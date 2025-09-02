@@ -1,8 +1,8 @@
-import React, { useState } from 'react';
-import { Monitor, Moon, Sun, Code, ExternalLink, Activity } from 'lucide-react';
+import React, { useEffect, useRef, useState } from 'react';
+import { Code } from 'lucide-react';
 import Header from './components/Header';
 import OverviewTable from './components/OverviewTable';
-import EnvironmentTabs from './components/EnvironmentTabs';
+import ActivityFeed from './components/ActivityFeed';
 import ModelGrid from './components/ModelGrid';
 import CodeViewer from './components/CodeViewer';
 import { useTheme } from './hooks/useTheme';
@@ -60,6 +60,60 @@ function App() {
   const [activeTab, setActiveTab] = useState('overview');
   const [showCodeViewer, setShowCodeViewer] = useState(false);
   const [selectedEnvironment, setSelectedEnvironment] = useState(mockEnvironments[0]);
+
+  // Global shortcut: press "n" then a number (1–9) to jump to the Nth environment tab (excluding Overview).
+  // Example: "n" then "2" -> activates the 2nd environment in the top nav (ABD with default mock order).
+  const numberChordTimeoutMs = 800; // small, responsive chord timeout
+  const awaitingNRef = useRef(false);
+  const nTimerRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const isInputLike = (el: EventTarget | null) => {
+      if (!(el instanceof HTMLElement)) return false;
+      const tag = el.tagName.toLowerCase();
+      return tag === 'input' || tag === 'textarea' || el.isContentEditable;
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      // Avoid interfering with typing in inputs/textareas/contenteditable
+      if (isInputLike(e.target)) return;
+
+      // Start chord on bare "n"
+      if (!e.repeat && e.key.toLowerCase() === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        awaitingNRef.current = true;
+        if (nTimerRef.current) window.clearTimeout(nTimerRef.current);
+        nTimerRef.current = window.setTimeout(() => {
+          awaitingNRef.current = false;
+          nTimerRef.current = null;
+        }, numberChordTimeoutMs);
+        return;
+      }
+
+      // Complete chord with a digit (0–9). "0" maps to Overview; "1–9" map to 1st..9th environments.
+      if (awaitingNRef.current && /^[0-9]$/.test(e.key)) {
+        e.preventDefault();
+        if (e.key === '0') {
+          setActiveTab('overview');
+        } else {
+          const idx = parseInt(e.key, 10) - 1; // map "1"->0, "2"->1, ...
+          if (idx >= 0 && idx < mockEnvironments.length) {
+            setActiveTab(mockEnvironments[idx].id);
+          }
+        }
+        awaitingNRef.current = false;
+        if (nTimerRef.current) {
+          window.clearTimeout(nTimerRef.current);
+          nTimerRef.current = null;
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      if (nTimerRef.current) window.clearTimeout(nTimerRef.current);
+    };
+  }, []);
 
   const currentEnvironment = mockEnvironments.find(env => env.id === activeTab) || mockEnvironments[0];
 
@@ -124,10 +178,17 @@ function App() {
 
         {/* Tab Content */}
         {activeTab === 'overview' ? (
-          <OverviewTable 
-            environments={mockEnvironments}
-            theme={theme}
-          />
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 order-1">
+              <OverviewTable 
+                environments={mockEnvironments}
+                theme={theme}
+              />
+            </div>
+            <div className="lg:col-span-1 order-2">
+              <ActivityFeed theme={theme} />
+            </div>
+          </div>
         ) : (
           <>
             {/* Current Environment Info */}

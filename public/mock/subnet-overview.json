@@ -1,0 +1,50 @@
+[
+  {
+    "hotkey": "hk_alpha",
+    "model": "affine-small-1",
+    "rev": "v1",
+    "uid": 101,
+    "sat": 72.4,
+    "abd": 68.1,
+    "ded": 64.7,
+    "elr": 70.2,
+    "eligible": true,
+    "overall_avg_score": 68.9,
+    "success_rate_percent": 82.5,
+    "avg_latency": 1.23,
+    "total_rollouts": 345,
+    "last_rollout_at": "2025-08-30T14:23:00Z"
+  },
+  {
+    "hotkey": "hk_beta",
+    "model": "affine-base-2",
+    "rev": "v3",
+    "uid": 202,
+    "sat": 63.3,
+    "abd": null,
+    "ded": 58.0,
+    "elr": 61.5,
+    "eligible": false,
+    "overall_avg_score": 60.9,
+    "success_rate_percent": 60.3,
+    "avg_latency": 1.8,
+    "total_rollouts": 210,
+    "last_rollout_at": "2025-08-29T19:05:12Z"
+  },
+  {
+    "hotkey": "hk_gamma",
+    "model": "affine-large-3",
+    "rev": "rc2",
+    "uid": 303,
+    "sat": null,
+    "abd": 75.9,
+    "ded": 73.1,
+    "elr": 77.8,
+    "eligible": true,
+    "overall_avg_score": 75.6,
+    "success_rate_percent": 91.2,
+    "avg_latency": 0.95,
+    "total_rollouts": 512,
+    "last_rollout_at": "2025-08-31T03:47:28Z"
+  }
+]
