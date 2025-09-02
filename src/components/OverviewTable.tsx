@@ -398,7 +398,8 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                     <div><span className="font-bold">Total Rollouts:</span> {model.total_rollouts.toLocaleString()}</div>
                     <div><span className="font-bold">Eligible:</span> {model.eligible ? 'Yes' : 'No'}</div>
                     {envs.map((env) => {
-                      const key = env.toLowerCase();
+                      // Keep key generation in sync with server aliasing: lowercase + non-alnum to underscore
+                      const key = env.toLowerCase().replace(/[^a-z0-9_]/g, '_');
                       const score = (model as any)[key] as number | null | undefined;
                       return (
                         <div key={env}><span className="font-bold">{env}:</span> {fmt(score)}</div>

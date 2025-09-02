@@ -11,7 +11,7 @@ export default async function handler(req, res) {
       -- This query gets a distinct, sorted list of all recently active environments.
       SELECT DISTINCT env_name
       FROM public.affine_results
-      WHERE ingested_at > NOW() - INTERVAL '14 days' -- Ensures only relevant envs are shown
+      WHERE ingested_at > NOW() - INTERVAL '30 days' -- Match subnet-overview window so columns always align
       ORDER BY env_name ASC;
     `;
     const { rows } = await query(sql);
