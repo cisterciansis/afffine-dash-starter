@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { ChevronDown, ChevronRight, Check, MoreVertical } from 'lucide-react';
 import { fetchSubnetOverview, SubnetOverviewRow } from '../services/api';
+import { useQuery } from '@tanstack/react-query';
 
 interface OverviewTableProps {
   environments?: any[]; // kept for compatibility with existing App.tsx; not used
@@ -10,9 +11,19 @@ interface OverviewTableProps {
 type DisplayRow = SubnetOverviewRow & { uniqueId: string };
 
 const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
-  const [rows, setRows] = useState<DisplayRow[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const { data, error: queryError, isLoading } = useQuery({
+    queryKey: ['subnet-overview'],
+    queryFn: fetchSubnetOverview,
+    staleTime: 60000, // 1 min: show cached data when revisiting; background refresh runs separately
+    refetchInterval: 6000, // refresh every 6s
+    refetchOnMount: false, // do not refetch immediately on mount if cache exists
+  });
+  const rows: DisplayRow[] = (data ?? []).map((r) => ({
+    ...r,
+    uniqueId: `${r.uid}-${r.model}-${r.rev}`,
+  }));
+  const loading = isLoading && rows.length === 0;
+  const errorMsg = queryError ? (queryError instanceof Error ? queryError.message : String(queryError)) : null;
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
@@ -28,29 +39,6 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   const endIndex = Math.min(rows.length, startIndex + pageSize);
   const pagedRows = rows.slice(startIndex, startIndex + pageSize);
 
-  useEffect(() => {
-    let mounted = true;
-    (async () => {
-      try {
-        setLoading(true);
-        const data = await fetchSubnetOverview();
-        if (!mounted) return;
-        const withIds: DisplayRow[] = data.map((r) => ({
-          ...r,
-          uniqueId: `${r.uid}-${r.model}-${r.rev}`,
-        }));
-        setRows(withIds);
-        setError(null);
-      } catch (e: any) {
-        setError(e?.message || 'Failed to load subnet overview');
-      } finally {
-        if (mounted) setLoading(false);
-      }
-    })();
-    return () => {
-      mounted = false;
-    };
-  }, []);
   
   // Reset to first page when rows count or page size changes
   useEffect(() => {
@@ -243,17 +231,17 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
 
         {/* Table Body */}
         <div className="divide-y-2 divide-gray-300">
-          {error && (
+          {errorMsg && (
             <div className={`p-4 ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
-              {error}
+              {errorMsg}
             </div>
           )}
-          {loading && !error && (
+          {loading && !errorMsg && (
             <div className={`p-4 ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               Loading...
             </div>
           )}
-          {!loading && !error && pagedRows.map((model) => (
+          {!loading && !errorMsg && pagedRows.map((model) => (
             <div key={model.uniqueId} onMouseEnter={() => setHoveredRowId(model.uniqueId)} onMouseLeave={() => setHoveredRowId(prev => (prev === model.uniqueId ? null : prev))}>
               {/* Main Row */}
               <div className={`p-3 hover:bg-opacity-50 transition-colors ${
