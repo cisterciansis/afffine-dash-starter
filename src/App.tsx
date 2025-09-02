@@ -13,6 +13,37 @@ function App() {
 
   const navigate = useNavigate();
 
+  // Responsive controls for environment tabs overflow
+  const [maxVisible, setMaxVisible] = React.useState<number>(6);
+  const [moreOpen, setMoreOpen] = React.useState(false);
+  const moreRef = React.useRef<HTMLDivElement | null>(null);
+
+  React.useEffect(() => {
+    const update = () => {
+      const w = window.innerWidth;
+      if (w < 480) setMaxVisible(2);
+      else if (w < 640) setMaxVisible(3);
+      else if (w < 768) setMaxVisible(4);
+      else if (w < 1024) setMaxVisible(5);
+      else if (w < 1280) setMaxVisible(6);
+      else setMaxVisible(8);
+    };
+    update();
+    window.addEventListener('resize', update);
+    return () => window.removeEventListener('resize', update);
+  }, []);
+
+  React.useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!moreRef.current) return;
+      if (!moreRef.current.contains(e.target as Node)) {
+        setMoreOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, []);
+
   // Keyboard shortcut: press "n" then up to 3 digits to jump to tabs (0 = Overview)
   const captureRef = React.useRef(false);
   const bufferRef = React.useRef<string>('');
@@ -102,7 +133,7 @@ function App() {
   }, [environments, navigate]);
 
   const tabClass = (active: boolean) => {
-    const base = 'px-6 py-3 font-mono text-xs uppercase tracking-wider border-r-2 last:border-r-0 transition-colors';
+    const base = 'px-6 py-3 font-mono text-xs uppercase tracking-wider border-r-2 last:border-r-0 transition-colors min-w-0 text-left';
     if (active) {
       return `${base} ${theme === 'dark' ? 'bg-gray-800 text-white border-white' : 'bg-white text-gray-900 border-gray-300'}`;
     }
@@ -123,13 +154,20 @@ function App() {
       <main className="container mx-auto px-6 py-8">
         {/* Top Navigation Tabs */}
         <div className="mb-6">
-          <div className="flex gap-0 border-2 border-b-0 rounded-none overflow-hidden">
-            <NavLink to="/" end className={({ isActive }) => tabClass(isActive)}>
-              Overview
-              <div className={`text-xs mt-1 font-mono ${
-                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
-              }`}>
-                ALL MODELS
+          <div className="relative flex gap-0 border-2 border-b-0 rounded-none overflow-visible">
+            <NavLink
+              to="/"
+              end
+              className={({ isActive }) => tabClass(isActive)}
+              title="Press N then 0 to switch to Overview"
+            >
+              <div className="flex flex-col items-start">
+                <span className="truncate">Overview</span>
+                <span
+                  className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mt-1 text-[10px] leading-none font-mono`}
+                >
+                  N + 0
+                </span>
               </div>
             </NavLink>
 
@@ -140,15 +178,93 @@ function App() {
             {!envLoading && envError && (
               <div className={tabClass(false)}>Error</div>
             )}
-            {!envLoading && !envError && environments.map((env) => (
-              <NavLink
-                key={env}
-                to={`/environment/${encodeURIComponent(env)}`}
-                className={({ isActive }) => tabClass(isActive)}
-              >
-                {env}
-              </NavLink>
-            ))}
+            {!envLoading && !envError && (() => {
+              const items = environments.map((env, i) => ({ env, i }));
+              const visible = items.slice(0, maxVisible);
+              const overflow = items.slice(maxVisible);
+              return (
+                <>
+                  {visible.map(({ env, i }) => (
+                    <NavLink
+                      key={env}
+                      to={`/environment/${encodeURIComponent(env)}`}
+                      className={({ isActive }) => tabClass(isActive)}
+                      title={`Press N then ${i + 1} to switch to ${env}`}
+                    >
+                      <div className="flex flex-col items-start min-w-0">
+                        <span className="truncate max-w-[12rem]">{env}</span>
+                        <span
+                          className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mt-1 text-[10px] leading-none font-mono`}
+                        >
+                          N + {i + 1}
+                        </span>
+                      </div>
+                    </NavLink>
+                  ))}
+
+                  {overflow.length > 0 && (
+                    <div className="relative" ref={moreRef}>
+                      <button
+                        type="button"
+                        className={tabClass(false)}
+                        onClick={() => setMoreOpen((v) => !v)}
+                        aria-haspopup="menu"
+                        aria-expanded={moreOpen}
+                        title="Show more environments"
+                      >
+                        <span className="sr-only">More environments</span>
+                        <svg
+                          width="16"
+                          height="16"
+                          viewBox="0 0 24 24"
+                          fill="currentColor"
+                          aria-hidden="true"
+                          className="mx-1"
+                        >
+                          <circle cx="12" cy="5" r="2"></circle>
+                          <circle cx="12" cy="12" r="2"></circle>
+                          <circle cx="12" cy="19" r="2"></circle>
+                        </svg>
+                      </button>
+
+                      {moreOpen && (
+                        <div
+                          className={`absolute right-0 top-full z-20 w-72 max-h-80 overflow-auto border-2 ${
+                            theme === 'dark'
+                              ? 'bg-gray-900 border-white text-gray-100'
+                              : 'bg-white border-gray-300 text-gray-800'
+                          }`}
+                          role="menu"
+                        >
+                          <div className="py-1">
+                            {overflow.map(({ env, i }) => (
+                              <NavLink
+                                key={env}
+                                to={`/environment/${encodeURIComponent(env)}`}
+                                className={({ isActive }) =>
+                                  `flex items-center justify-between gap-2 px-3 py-2 font-mono text-sm hover:underline ${
+                                    isActive
+                                      ? theme === 'dark'
+                                        ? 'bg-gray-800'
+                                        : 'bg-cream-100'
+                                      : ''
+                                  }`
+                                }
+                                onClick={() => setMoreOpen(false)}
+                                role="menuitem"
+                              >
+                                <span className="truncate">{env}</span>
+                                <span className="text-[10px] opacity-70">N + {i + 1}</span>
+                              </NavLink>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </>
+              );
+            })()}
           </div>
         </div>
 
