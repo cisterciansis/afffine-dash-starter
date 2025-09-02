@@ -1,5 +1,5 @@
 import React from 'react';
-import { NavLink, Routes, Route, Navigate } from 'react-router-dom';
+import { NavLink, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
 import Header from './components/Header';
 import OverviewTable from './components/OverviewTable';
 import ActivityFeed from './components/ActivityFeed';
@@ -10,6 +10,96 @@ import EnvironmentPage from './pages/EnvironmentPage';
 function App() {
   const { theme, toggleTheme } = useTheme();
   const { environments, loading: envLoading, error: envError } = useEnvironments();
+
+  const navigate = useNavigate();
+
+  // Keyboard shortcut: press "n" then up to 3 digits to jump to tabs (0 = Overview)
+  const captureRef = React.useRef(false);
+  const bufferRef = React.useRef<string>('');
+  const timeoutRef = React.useRef<number | null>(null);
+
+  React.useEffect(() => {
+    const clearTimer = () => {
+      if (timeoutRef.current) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
+
+    const commit = () => {
+      const buf = bufferRef.current;
+      captureRef.current = false;
+      bufferRef.current = '';
+      clearTimer();
+      if (!buf) return;
+      const idx = parseInt(buf, 10);
+      if (Number.isNaN(idx)) return;
+      if (idx === 0) {
+        navigate('/');
+        return;
+      }
+      const targetIndex = idx - 1;
+      if (targetIndex >= 0 && targetIndex < environments.length) {
+        const envName = environments[targetIndex];
+        navigate(`/environment/${encodeURIComponent(envName)}`);
+      }
+    };
+
+    const shouldIgnore = (e: KeyboardEvent) => {
+      if (e.ctrlKey || e.metaKey || e.altKey) return true;
+      const target = e.target as HTMLElement | null;
+      if (!target) return false;
+      const tag = target.tagName;
+      const editable = (target as HTMLElement).isContentEditable;
+      return (
+        editable ||
+        tag === 'INPUT' ||
+        tag === 'TEXTAREA' ||
+        tag === 'SELECT' ||
+        (tag === 'DIV' && target.getAttribute('role') === 'textbox')
+      );
+    };
+
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (shouldIgnore(e)) return;
+
+      if (!captureRef.current) {
+        if (e.key.toLowerCase() === 'n') {
+          captureRef.current = true;
+          bufferRef.current = '';
+          clearTimer();
+          e.preventDefault();
+        }
+        return;
+      }
+
+      if (/^\d$/.test(e.key)) {
+        bufferRef.current += e.key;
+        e.preventDefault();
+
+        if (bufferRef.current.length >= 3) {
+          commit();
+          return;
+        }
+        clearTimer();
+        timeoutRef.current = window.setTimeout(commit, 600);
+      } else {
+        if (bufferRef.current) {
+          commit();
+        } else {
+          captureRef.current = false;
+          bufferRef.current = '';
+          clearTimer();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      clearTimer();
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [environments, navigate]);
 
   const tabClass = (active: boolean) => {
     const base = 'px-6 py-3 font-mono text-xs uppercase tracking-wider border-r-2 last:border-r-0 transition-colors';
