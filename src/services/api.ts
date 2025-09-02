@@ -78,6 +78,28 @@ export type LatencyDistributionByEnvRow = {
   latency_seconds: number;
 };
 
+export type AdvancedInsightRow = {
+  hotkey: string;
+  model: string;
+  chute_id: string | null;
+  template: string | null;
+  gpus: string | null; // stringified array or single value from DB
+  cost_per_hour: number | null;
+  score: number;
+};
+
+export type GpuMarketShareRow = {
+  gpus: string | null;
+  miner_count: number;
+};
+
+export type MinerEfficiencyCostRow = {
+  hotkey: string;
+  model: string;
+  avg_score: number;
+  avg_token_cost_usd: number;
+};
+
 async function getJSON<T>(path: string): Promise<T> {
   try {
     const res = await fetch(path, { method: 'GET' });
@@ -106,6 +128,9 @@ async function getJSON<T>(path: string): Promise<T> {
       '/api/network-activity': '/mock/network-activity.json',
       '/api/environment-stats': '/mock/environment-stats.json',
       '/api/miner-efficiency': '/mock/miner-efficiency.json',
+      '/api/advanced-insights': '/mock/advanced-insights.json',
+      '/api/gpu-market-share': '/mock/gpu-market-share.json',
+      '/api/miner-efficiency-cost': '/mock/miner-efficiency-cost.json',
       // New env-specific endpoints (querystring stripped below)
       '/api/top-miners-by-env': '/mock/top-miners-by-env.json',
       '/api/score-distribution-by-env': '/mock/score-distribution-by-env.json',
@@ -228,4 +253,16 @@ export function fetchScoreDistributionByEnv(env: string) {
 
 export function fetchLatencyDistributionByEnv(env: string) {
   return getJSON<LatencyDistributionByEnvRow[]>(`/api/latency-distribution-by-env?env=${encodeURIComponent(env)}`);
+}
+
+export function fetchAdvancedInsights() {
+  return getJSON<AdvancedInsightRow[]>('/api/advanced-insights');
+}
+
+export function fetchGpuMarketShare() {
+  return getJSON<GpuMarketShareRow[]>('/api/gpu-market-share');
+}
+
+export function fetchMinerEfficiencyCost() {
+  return getJSON<MinerEfficiencyCostRow[]>('/api/miner-efficiency-cost');
 }

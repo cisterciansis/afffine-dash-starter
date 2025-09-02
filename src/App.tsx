@@ -9,6 +9,8 @@ import EnvironmentPage from './pages/EnvironmentPage';
 import NetworkActivityChart from './components/NetworkActivityChart';
 import EnvironmentStatsChart from './components/EnvironmentStatsChart';
 import MinerEfficiencyChart from './components/MinerEfficiencyChart';
+import GpuMarketShareDonut from './components/GpuMarketShareDonut';
+import CostPerformanceScatter from './components/CostPerformanceScatter';
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -290,6 +292,10 @@ function App() {
                   <NetworkActivityChart theme={theme} />
                   <EnvironmentStatsChart theme={theme} />
                   <MinerEfficiencyChart theme={theme} />
+
+                  {/* Advanced Insights */}
+                  <GpuMarketShareDonut theme={theme} />
+                  <CostPerformanceScatter theme={theme} />
                 </div>
               </div>
             }
