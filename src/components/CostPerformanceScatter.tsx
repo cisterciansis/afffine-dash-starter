@@ -64,9 +64,9 @@ const CostPerformanceScatter: React.FC<Props> = ({ theme }) => {
       )}
 
       {!isLoading && !error && (
-        <div style={{ width: '100%', height: 320 }}>
+        <div style={{ width: '100%', height: 360 }}>
           <ResponsiveContainer>
-            <ScatterChart margin={{ top: 12, right: 56, left: 56, bottom: 20 }}>
+            <ScatterChart margin={{ top: 28, right: 56, left: 68, bottom: 120 }}>
               <CartesianGrid strokeDasharray="3 3" stroke={theme === 'dark' ? '#333' : '#ddd'} />
               <XAxis
                 type="number"
@@ -75,7 +75,7 @@ const CostPerformanceScatter: React.FC<Props> = ({ theme }) => {
                 stroke={theme === 'dark' ? '#ddd' : '#333'}
                 tickMargin={8}
                 tickFormatter={(v: number) => `$${v.toFixed(2)}`}
-                label={{ value: 'Avg Cost ($ / Million Tokens)', position: 'bottom', offset: 0, fill: theme === 'dark' ? '#ddd' : '#333' }}
+                label={{ value: 'Avg Cost ($ / Million Tokens)', position: 'bottom', offset: 32, fill: theme === 'dark' ? '#ddd' : '#333' }}
               />
               <YAxis
                 type="number"
@@ -85,7 +85,7 @@ const CostPerformanceScatter: React.FC<Props> = ({ theme }) => {
                 tickMargin={8}
                 domain={[0, 1]}
                 tickFormatter={(v: number) => v.toFixed(2)}
-                label={{ value: 'Avg Score', angle: -90, position: 'left', offset: 0, fill: theme === 'dark' ? '#ddd' : '#333' }}
+                label={{ value: 'Avg Score', angle: -90, position: 'left', offset: 12, fill: theme === 'dark' ? '#ddd' : '#333' }}
               />
               <Tooltip
                 cursor={{ strokeDasharray: '3 3' }}
@@ -102,7 +102,7 @@ const CostPerformanceScatter: React.FC<Props> = ({ theme }) => {
                   return `Hotkey: ${p.hotkey}${modelStr}`;
                 }}
               />
-              <Legend />
+              <Legend verticalAlign="bottom" align="center" height={32} wrapperStyle={{ paddingTop: 8, marginTop: 12 }} />
               <Scatter
                 name="Miners"
                 data={points}

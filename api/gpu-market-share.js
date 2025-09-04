@@ -28,7 +28,7 @@ export default async function handler(req, res) {
       -- Now, we count the number of miners from this clean list for each GPU configuration.
       SELECT
         gpus,
-        COUNT(*) as miner_count
+        COUNT(*)::int as miner_count
       FROM latest_miner_config
       GROUP BY gpus
       ORDER BY miner_count DESC;

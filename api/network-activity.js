@@ -9,29 +9,42 @@ export default async function handler(req, res) {
   try {
     const sql = `
       -- This query provides a daily summary of network-wide activity and performance.
-      -- Average score is computed only over the Top 50 models (by avg score within last 60 days).
+      -- Returns:
+      --   - avg_all: daily average over all models (continuous line)
+      --   - avg_top50_daily: daily average over the top 50 models for that same day
+      --     (top 50 determined by that day's per-model average score)
       WITH windowed AS (
         SELECT DATE_TRUNC('day', ingested_at)::date AS period, model, score
         FROM public.affine_results
         WHERE ingested_at > NOW() - INTERVAL '60 days'
       ),
-      top_models AS (
-        SELECT model
+      daily_model_avgs AS (
+        SELECT period, model, AVG(score) AS model_avg
         FROM windowed
-        GROUP BY model
-        ORDER BY AVG(score) DESC
-        LIMIT 50
+        GROUP BY period, model
+      ),
+      top50_daily AS (
+        SELECT period, model
+        FROM (
+          SELECT
+            period,
+            model,
+            model_avg,
+            ROW_NUMBER() OVER (PARTITION BY period ORDER BY model_avg DESC) AS rn
+          FROM daily_model_avgs
+        ) t
+        WHERE rn <= 50
       )
       SELECT
-          period,
-          COUNT(*) AS total_rollouts,
-          AVG(score) FILTER (WHERE model IN (SELECT model FROM top_models)) AS average_score
-      FROM
-          windowed
-      GROUP BY
-          period
-      ORDER BY
-          period ASC;
+        w.period,
+        COUNT(*) AS total_rollouts,
+        AVG(w.score) AS avg_all,
+        AVG(w.score) FILTER (WHERE t.model IS NOT NULL) AS avg_top50_daily
+      FROM windowed w
+      LEFT JOIN top50_daily t
+        ON t.period = w.period AND t.model = w.model
+      GROUP BY w.period
+      ORDER BY w.period ASC;
     `;
     const { rows } = await query(sql);
     return res.status(200).json(rows);

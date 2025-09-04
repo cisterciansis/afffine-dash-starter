@@ -1,5 +1,5 @@
 import React from 'react';
-import { Monitor, Moon, Sun, ExternalLink } from 'lucide-react';
+import { Code2, Moon, Sun, ExternalLink } from 'lucide-react';
 
 interface HeaderProps {
   theme: 'light' | 'dark';
@@ -41,6 +41,19 @@ const Header: React.FC<HeaderProps> = ({ theme, toggleTheme }) => {
             >
               <ExternalLink size={12} />
               METAGRAPH
+            </a>
+            <a
+              href="https://github.com/AffineFoundation/affine"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`flex items-center gap-2 px-3 py-2 border-2 font-mono text-xs uppercase tracking-wider transition-colors ${
+                theme === 'dark'
+                  ? 'border-white text-white hover:bg-white hover:text-black'
+                  : 'border-gray-400 text-gray-700 hover:bg-gray-900 hover:text-white'
+              }`}
+            >
+              <Code2 size={12} />
+              CODE
             </a>
           </div>
           

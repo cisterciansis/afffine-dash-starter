@@ -316,7 +316,7 @@ function App() {
               </div>
             }
           />
-          <Route path="/environment/:envName" element={<EnvironmentPage />} />
+          <Route path="/environment/:envName" element={<EnvironmentPage theme={theme} />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

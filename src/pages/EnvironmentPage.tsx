@@ -1,29 +1,40 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Navigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { fetchSubnetOverview, type SubnetOverviewRow } from '../services/api';
-import { useTheme } from '../hooks/useTheme';
+import { fetchSubnetOverview, type SubnetOverviewRow, fetchLiveEnvLeaderboard, type LiveEnvLeaderboardRow } from '../services/api';
 import { useEnvironments } from '../contexts/EnvironmentsContext';
 import PaginationControls from '../components/PaginationControls';
 import CodeViewer from '../components/CodeViewer';
 import { ExternalLink, Code } from 'lucide-react';
-import TopMinersTrendChart from '../components/TopMinersTrendChart';
+import { Skeleton } from '../components/Skeleton';
 import ScoreDistributionHistogram from '../components/ScoreDistributionHistogram';
 import LatencyBoxPlot from '../components/LatencyBoxPlot';
 
-const EnvironmentPage: React.FC = () => {
+const EnvironmentPage: React.FC<{ theme: 'light' | 'dark' }> = ({ theme }) => {
   const { envName: rawEnv } = useParams();
-  const { theme } = useTheme();
   const { environments, loading: envLoading } = useEnvironments();
 
   const envName = (rawEnv || '').toUpperCase();
   const envKey = envName.toLowerCase();
 
+  // Table view mode for this environment (Live default for consistency with overview)
+  const [viewMode, setViewMode] = useState<'live' | 'historical'>('live');
+
   const { data, error, isLoading } = useQuery({
     queryKey: ['subnet-overview'],
     queryFn: fetchSubnetOverview,
+    enabled: viewMode === 'historical',
     staleTime: 60000,
-    refetchInterval: 6000,
+    refetchOnMount: false,
+  });
+
+  // Live environment leaderboard for this specific env
+  const { data: liveData, error: liveError, isLoading: isLiveLoading } = useQuery({
+    queryKey: ['live-env-leaderboard', envName],
+    queryFn: () => fetchLiveEnvLeaderboard(envName),
+    enabled: viewMode === 'live',
+    staleTime: 5000,
+    refetchInterval: viewMode === 'live' ? 6000 : false,
     refetchOnMount: false,
   });
 
@@ -45,30 +56,52 @@ const EnvironmentPage: React.FC = () => {
     .filter((x) => x.value != null)
     .sort((a, b) => (b.value! - a.value!));
 
+  // Live dataset from API
+  const liveRows: LiveEnvLeaderboardRow[] = Array.isArray(liveData) ? (liveData as LiveEnvLeaderboardRow[]) : [];
+
+  // Unified table state derived from current mode
+  const tableTotal = viewMode === 'historical' ? ranked.length : liveRows.length;
+  const tableLoading = viewMode === 'historical' ? isLoading : isLiveLoading;
+  const tableError = viewMode === 'historical' ? (error as unknown) : (liveError as unknown);
+
   // Pagination state
   const [pageSize, setPageSize] = useState<number>(20);
   const [page, setPage] = useState<number>(1);
   const [showCode, setShowCode] = useState(false);
 
-  // Reset to first page when ranked count or page size changes
+  // Reset to first page when table count or page size changes
   useEffect(() => {
     setPage(1);
-  }, [pageSize, ranked.length]);
+  }, [pageSize, tableTotal]);
 
-  const totalPages = Math.max(1, Math.ceil(ranked.length / pageSize));
+  const totalPages = Math.max(1, Math.ceil(tableTotal / pageSize));
   // Clamp page if it exceeds totalPages
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const startIndex = ranked.length === 0 ? 0 : (page - 1) * pageSize;
-  const endIndex = Math.min(ranked.length, startIndex + pageSize);
-  const paged = ranked.slice(startIndex, startIndex + pageSize);
+  const startIndex = tableTotal === 0 ? 0 : (page - 1) * pageSize;
+  const endIndex = Math.min(tableTotal, startIndex + pageSize);
+  const pagedHistorical = ranked.slice(startIndex, Math.min(ranked.length, startIndex + pageSize));
+  const pagedLive = liveRows.slice(startIndex, Math.min(liveRows.length, startIndex + pageSize));
 
   // Environment-specific overview stats
   const envTotals = ranked.length;
   const envEligible = ranked.filter(({ row }) => row.eligible).length;
   const envHighest = ranked.length > 0 ? ranked[0].value : null;
+  const overviewLoading = viewMode === 'historical' ? isLoading : isLiveLoading;
+  const envTotalsDisplay = viewMode === 'historical' ? envTotals : liveRows.length;
+  const envEligibleDisplay = viewMode === 'historical' ? envEligible : liveRows.length;
+  const envHighestDisplay =
+    viewMode === 'historical'
+      ? envHighest
+      : (liveRows.length > 0
+          ? liveRows.reduce<number | null>((max, r) => {
+              const val = r.average_score ?? null;
+              if (val == null) return max;
+              return max == null ? val : Math.max(max, val);
+            }, null)
+          : null);
 
   // Environment metadata and repo mapping (fallbacks; replace with real mappings when available)
   const repoMap: Record<string, string> = {
@@ -93,7 +126,7 @@ const EnvironmentPage: React.FC = () => {
     id: envKey,
     name: envName,
     description: descriptionMap[envKey] || `${envName} environment`,
-    repoUrl: repoMap[envKey] || 'https://github.com/cisterciansis/afffine-dash-starter',
+    repoUrl: `https://github.com/AffineFoundation/affine/blob/main/affine/envs/${envKey}.py`,
     models: Array.from({ length: envTotals }),
   };
 
@@ -183,7 +216,7 @@ const EnvironmentPage: React.FC = () => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              {isLoading ? '—' : envTotals}
+              {overviewLoading ? '—' : envTotalsDisplay}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -195,7 +228,7 @@ const EnvironmentPage: React.FC = () => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-green-400' : 'text-green-600'
             }`}>
-              {isLoading ? '—' : envEligible}
+              {overviewLoading ? '—' : envEligibleDisplay}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -207,7 +240,7 @@ const EnvironmentPage: React.FC = () => {
             <div className={`text-2xl font-mono font-bold ${
               theme === 'dark' ? 'text-white' : 'text-gray-900'
             }`}>
-              {isLoading ? '—' : fmt(envHighest, 1)}
+              {overviewLoading ? '—' : fmt(envHighestDisplay, 1)}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider ${
               theme === 'dark' ? 'text-gray-300' : 'text-gray-600'
@@ -228,8 +261,33 @@ const EnvironmentPage: React.FC = () => {
         <div className={`p-3 border-b-2 ${
           theme === 'dark' ? 'border-white bg-gray-900' : 'border-gray-300 bg-cream-50'
         }`}>
-          <div className={`text-lg font-mono font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-            Top Models in {envName}
+          <div className="flex items-center justify-between">
+            <div className={`text-lg font-mono font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              Top Models in {envName}
+            </div>
+            {/* Live / Historical toggle (match OverviewTable styling) */}
+            <div className="inline-flex items-center gap-0">
+              <button
+                onClick={() => setViewMode('live')}
+                className={`h-8 px-3 text-xs font-mono border rounded-l-sm ${viewMode === 'live'
+                    ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
+                    : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
+                  }`}
+                aria-pressed={viewMode === 'live'}
+              >
+                Live
+              </button>
+              <button
+                onClick={() => setViewMode('historical')}
+                className={`h-8 px-3 text-xs font-mono border rounded-r-sm -ml-px ${viewMode === 'historical'
+                    ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
+                    : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
+                  }`}
+                aria-pressed={viewMode === 'historical'}
+              >
+                Historical
+              </button>
+            </div>
           </div>
         </div>
 
@@ -237,7 +295,7 @@ const EnvironmentPage: React.FC = () => {
         <div className="px-3 pt-3">
           <PaginationControls
             theme={theme}
-            total={ranked.length}
+            total={tableTotal}
             page={page}
             setPage={setPage}
             pageSize={pageSize}
@@ -246,23 +304,40 @@ const EnvironmentPage: React.FC = () => {
         </div>
 
         <div className="p-3">
-          {isLoading && (
-            <div className={`text-sm font-mono ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
-              Loading…
+          {tableLoading && (
+            <div className="space-y-2">
+              {Array.from({ length: Math.min(pageSize, 10) }).map((_, idx) => (
+                <div
+                  key={idx}
+                  className={`p-3 border-2 rounded-none ${theme === 'dark' ? 'border-white bg-black' : 'border-gray-300 bg-white'}`}
+                >
+                  <div className={`${gridCols} items-center`}>
+                    <Skeleton theme={theme} className="h-4 w-6 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-16 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-3/5" />
+                    <Skeleton theme={theme} className="h-4 w-10 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-16 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-16 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-16 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-20 mx-auto" />
+                    <Skeleton theme={theme} className="h-4 w-16 mx-auto" />
+                  </div>
+                </div>
+              ))}
             </div>
           )}
-          {error && (
+          {tableError != null && (
             <div className={`text-sm font-mono ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
-              {error instanceof Error ? error.message : String(error)}
+              {tableError instanceof Error ? tableError.message : String(tableError)}
             </div>
           )}
-          {!isLoading && !error && ranked.length === 0 && (
+          {!tableLoading && !tableError && tableTotal === 0 && (
             <div className={`text-sm font-mono ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
               No data available for {envName}.
             </div>
           )}
 
-          {!isLoading && !error && ranked.length > 0 && (
+          {!tableLoading && !tableError && tableTotal > 0 && (
             <div className={`border-2 rounded-none ${theme === 'dark' ? 'border-white bg-black' : 'border-gray-300 bg-white'}`}>
               {/* Header Row */}
               <div className={`p-3 border-b-2 ${theme === 'dark' ? 'border-white bg-gray-900' : 'border-gray-300 bg-cream-50'}`}>
@@ -281,7 +356,7 @@ const EnvironmentPage: React.FC = () => {
 
               {/* Body */}
               <div className="divide-y-2 divide-gray-300">
-                {paged.map(({ row, value }, idx) => (
+                {viewMode === 'historical' && pagedHistorical.map(({ row, value }, idx) => (
                   <div key={`${row.uid}-${row.model}-${row.rev}`}>
                     <div className={`p-3 hover:bg-opacity-50 transition-colors ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-cream-50'}`}>
                       <div className={`${gridCols} text-center`}>
@@ -316,14 +391,52 @@ const EnvironmentPage: React.FC = () => {
                     </div>
                   </div>
                 ))}
+                {viewMode === 'live' && pagedLive.map((lr, idx) => (
+                  <div key={`${lr.hotkey}-${lr.model}-${lr.revision ?? ''}`}>
+                    <div className={`p-3 hover:bg-opacity-50 transition-colors ${theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-cream-50'}`}>
+                      <div className={`${gridCols} text-center`}>
+                        <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {startIndex + idx + 1}
+                        </div>
+                        <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {lr.last_seen_uid}
+                        </div>
+                        <div className={`text-sm font-mono truncate whitespace-nowrap text-left ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`} title={lr.model}>
+                          {midTrunc(lr.model, 48)}
+                        </div>
+                        <div className={`text-xs font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`} title={String(lr.revision ?? '')}>
+                          {midTrunc(String(lr.revision ?? ''), 10)}
+                        </div>
+                        <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {fmt(lr.average_score, 1)}
+                        </div>
+                        <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {dash}
+                        </div>
+                        <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                          {lr.success_rate_percent == null ? '—' : `${lr.success_rate_percent.toFixed(1)}%`}
+                        </div>
+                        <div className={`text-sm font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {lr.avg_latency == null ? dash : lr.avg_latency.toFixed(2)}
+                        </div>
+                        <div className={`text-sm font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+                          {lr.total_rollouts.toLocaleString()}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           )}
         </div>
       </div>
-      <TopMinersTrendChart env={envName} theme={theme} />
-      <ScoreDistributionHistogram env={envName} theme={theme} />
-      <LatencyBoxPlot env={envName} theme={theme} />
+      {!tableLoading && (
+        <>
+          <ScoreDistributionHistogram env={envName} theme={theme} />
+          <LatencyBoxPlot env={envName} theme={theme} />
+        </>
+      )}
     </div>
   );
 };

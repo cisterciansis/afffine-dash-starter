@@ -18,26 +18,26 @@ export default async function handler(req, res) {
       SELECT
           hotkey,
           model,
-          AVG(score) as avg_score,
+          AVG(score)::double precision as avg_score,
           -- This is the key change:
           -- 1. Extract the input and output token costs.
           -- 2. Average them to get a single representative token cost metric.
           AVG(
               (
-                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'usd' ->> 'input')::numeric
+                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'input' ->> 'usd')::double precision
                   +
-                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'usd' ->> 'output')::numeric
-              ) / 2
-          ) as avg_token_cost_usd
+                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'output' ->> 'usd')::double precision
+              ) / 2.0
+          )::double precision as avg_token_cost_usd
       FROM
           public.affine_results
       WHERE
           ingested_at > NOW() - INTERVAL '7 days'
           -- This filter is critical: it ensures we only include rows that have valid, non-null TOKEN cost data.
-          AND jsonb_path_exists(extra, '$.miner_chute.current_estimated_price.per_million_tokens.usd.input')
-          AND jsonb_path_exists(extra, '$.miner_chute.current_estimated_price.per_million_tokens.usd.output')
-          AND (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'usd' ->> 'input') IS NOT NULL
-          AND (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'usd' ->> 'output') IS NOT NULL
+          AND jsonb_path_exists(extra, '$.miner_chute.current_estimated_price.per_million_tokens.input.usd')
+          AND jsonb_path_exists(extra, '$.miner_chute.current_estimated_price.per_million_tokens.output.usd')
+          AND (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'input' ->> 'usd') IS NOT NULL
+          AND (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'output' ->> 'usd') IS NOT NULL
       GROUP BY
           hotkey, model
       HAVING
@@ -46,10 +46,10 @@ export default async function handler(req, res) {
           -- Only include miners with a positive cost.
           AND AVG(
               (
-                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'usd' ->> 'input')::numeric
+                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'input' ->> 'usd')::double precision
                   +
-                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'usd' ->> 'output')::numeric
-              ) / 2
+                  (extra -> 'miner_chute' -> 'current_estimated_price' -> 'per_million_tokens' -> 'output' ->> 'usd')::double precision
+              ) / 2.0
           ) > 0
       ORDER BY
           hotkey;

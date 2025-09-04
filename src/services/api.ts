@@ -15,6 +15,17 @@ export type LeaderboardRow = {
   avg_latency: number | null;
 };
 
+export type LiveEnvLeaderboardRow = {
+  hotkey: string;
+  last_seen_uid: number;
+  model: string;
+  revision: string | null;
+  total_rollouts: number;
+  average_score: number | null;
+  success_rate_percent: number | null;
+  avg_latency: number | null;
+};
+
 export type ActivityRow = {
   ingested_at: string; // ISO timestamp
   hotkey: string;
@@ -47,7 +58,11 @@ export type DailyRolloutsByModelRow = {
 export type NetworkActivityRow = {
   period: string; // ISO date at day granularity
   total_rollouts: number;
-  average_score: number;
+  // New API fields:
+  avg_all?: number;
+  avg_top50_daily?: number | null;
+  // Backward-compat for older server/mock payloads:
+  average_score?: number;
 };
 
 export type EnvironmentStatsRow = {
@@ -139,7 +154,15 @@ async function getJSON<T>(path: string): Promise<T> {
     };
     // Support querystring paths by mapping base path to mock file
     const basePath = path.split('?')[0];
-    const mockPath = mockMap[basePath];
+    let mockPath = mockMap[basePath];
+
+    // Dynamic route fallbacks
+    if (!mockPath) {
+      if (basePath.startsWith('/api/live-env-leaderboard/')) {
+        mockPath = '/mock/live-env-leaderboard.json';
+      }
+    }
+
     if (mockPath) {
       const mockRes = await fetch(mockPath, { method: 'GET' });
       if (!mockRes.ok) {
@@ -152,12 +175,64 @@ async function getJSON<T>(path: string): Promise<T> {
   }
 }
 
+export type LiveEnrichmentRow = {
+  uid: number;
+  model: string;
+  hotkey: string;
+  total_rollouts: number;
+  overall_avg_score: number | null;
+  success_rate_percent: number;
+  avg_latency: number | null;
+  last_rollout_at: string | null;
+  chute_id: string | null;
+};
+
+async function postJSON<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => '');
+    throw new Error(`POST ${path} failed: ${res.status} ${res.statusText} ${text}`);
+  }
+  const contentType = res.headers.get('content-type') || '';
+  const text = await res.text();
+  if (!contentType.includes('application/json')) {
+    throw new Error(`Unexpected content-type for ${path}: ${contentType}`);
+  }
+  return JSON.parse(text) as T;
+}
+
+/**
+ * Enrich live rows (from public API) with DB-backed fields using targeted queries.
+ * POST /api/live-enrichment
+ */
+export function enrichLiveSubnetRows(items: Array<{ uid: number | string; model: string }>) {
+  const normalized = items.map(it => ({
+    uid: typeof it.uid === 'string' ? Number(it.uid) : it.uid,
+    model: it.model,
+  }));
+  // In local Vite-only dev, /api/* won't be served; fail gracefully by returning empty enrichment.
+  return postJSON<LiveEnrichmentRow[]>('/api/live-enrichment', { items: normalized }).catch(() => [] as LiveEnrichmentRow[]);
+}
+
 /**
  * Fetch top 20 miners by average score with stats.
  * GET /api/leaderboard
  */
 export function fetchLeaderboard() {
   return getJSON<LeaderboardRow[]>('/api/leaderboard');
+}
+
+/**
+ * Live leaderboard for a specific environment.
+ * GET /api/live-env-leaderboard/[env]
+ */
+export function fetchLiveEnvLeaderboard(env: string) {
+  const path = `/api/live-env-leaderboard/${encodeURIComponent(env)}`;
+  return getJSON<LiveEnvLeaderboardRow[]>(path);
 }
 
 /**

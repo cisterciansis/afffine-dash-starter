@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Check, MoreVertical } from 'lucide-react';
-import { fetchSubnetOverview, SubnetOverviewRow } from '../services/api';
+import { fetchSubnetOverview, SubnetOverviewRow, enrichLiveSubnetRows, LiveEnrichmentRow } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useEnvironments } from '../contexts/EnvironmentsContext';
 import { Skeleton, SkeletonText } from './Skeleton';
@@ -38,6 +38,10 @@ type LiveDisplayRow = {
 const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   // View mode (Historical = DB queries, Live = Public API)
   const [viewMode, setViewMode] = useState<'historical' | 'live'>('live');
+  // Enrichment state for Live view (DB-backed fields keyed by uid|model|rev)
+  const [enrichedMap, setEnrichedMap] = useState<Record<string, LiveEnrichmentRow>>({});
+  const [enriching, setEnriching] = useState<boolean>(false);
+  const [enrichmentError, setEnrichmentError] = useState<string | null>(null);
 
   // Historical: keep existing data flow exactly the same
   const {
@@ -186,6 +190,47 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
+
+  // Helper to build a stable key for enrichment lookups
+  const liveKey = (uid: string | number, model: string) => `${Number(uid)}|${model.toLowerCase()}`;
+
+
+  // Enrich only the currently visible page of live rows to minimize DB load
+  useEffect(() => {
+    if (viewMode !== 'live' || !liveRows.length) return;
+
+    const start = (page - 1) * pageSize;
+    const end = Math.min(liveRows.length, start + pageSize);
+    const slice = liveRows.slice(start, end);
+
+    // Prepare unique items not yet enriched
+    const toFetch: Array<{ uid: number; model: string }> = [];
+    const seen = new Set<string>();
+    for (const r of slice) {
+      const k = liveKey(r.uid, r.model);
+      if (seen.has(k) || enrichedMap[k]) continue;
+      seen.add(k);
+      const uidNum = Number(r.uid);
+      if (!Number.isFinite(uidNum) || !r.model) continue;
+      toFetch.push({ uid: uidNum, model: r.model });
+    }
+    if (toFetch.length === 0) return;
+
+    setEnriching(true);
+    setEnrichmentError(null);
+    enrichLiveSubnetRows(toFetch)
+      .then((rows) => {
+        setEnrichedMap((prev) => {
+          const next = { ...prev };
+          for (const er of rows) {
+            next[liveKey(er.uid, er.model)] = er;
+          }
+          return next;
+        });
+      })
+      .catch((err) => setEnrichmentError(err instanceof Error ? err.message : String(err)))
+      .finally(() => setEnriching(false));
+  }, [viewMode, page, pageSize, liveRows, liveSummary]);
 
   const fmt = (n: number | null | undefined, digits = 1) => (n == null ? '—' : n.toFixed(digits));
   const fmtTs = (iso: string | null | undefined) => (!iso ? '—' : new Date(iso).toLocaleString());
@@ -455,7 +500,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                     {fmt(model.overall_avg_score)}
                   </div>
                   <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    {model.success_rate_percent.toFixed(1)}%
+                    {model.success_rate_percent == null ? '—' : `${model.success_rate_percent.toFixed(1)}%`}
                   </div>
                   <div className={`text-sm font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                     {model.avg_latency == null ? dash : model.avg_latency.toFixed(2)}
@@ -594,7 +639,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                     <div><span className="font-bold">Rev:</span> {String(model.rev)}</div>
                     <div><span className="font-bold">Last Rollout:</span> {fmtTs(model.last_rollout_at)}</div>
                     <div><span className="font-bold">Avg Score:</span> {fmt(model.overall_avg_score)}</div>
-                    <div><span className="font-bold">Success %:</span> {model.success_rate_percent.toFixed(1)}%</div>
+                    <div><span className="font-bold">Success %:</span> {model.success_rate_percent == null ? '—' : `${model.success_rate_percent.toFixed(1)}%`}</div>
                     <div><span className="font-bold">Avg Latency (s):</span> {model.avg_latency == null ? dash : model.avg_latency.toFixed(2)}</div>
                     <div><span className="font-bold">Total Rollouts:</span> {model.total_rollouts.toLocaleString()}</div>
                     <div><span className="font-bold">Eligible:</span> {model.eligible ? 'Yes' : 'No'}</div>
@@ -613,7 +658,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
           ))}
 
           {/* Live rows */}
-          {viewMode === 'live' && !loading && !errorMsg && pagedRows.map((model: LiveDisplayRow) => (
+          {viewMode === 'live' && !loading && pagedRows.map((model: LiveDisplayRow) => (
             <div key={model.uniqueId} onMouseEnter={() => setHoveredRowId(model.uniqueId)} onMouseLeave={() => setHoveredRowId(prev => (prev === model.uniqueId ? null : prev))}>
               {/* Main Row */}
               <div className={`p-3 hover:bg-opacity-50 transition-colors ${
@@ -633,8 +678,10 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                     {fmt(model.avgScore)}
                   </div>
                   <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-                    {/* Success % not available in live summary */}
-                    —
+                    {(() => {
+                      const er = enrichedMap[liveKey(model.uid, model.model)];
+                        return er && er.success_rate_percent != null ? `${er.success_rate_percent.toFixed(1)}%` : '—';
+                    })()}
                   </div>
                   <div className={`text-sm font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
                     {/* In Live view, show Weight instead of Avg Latency */}
@@ -724,30 +771,36 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                             <span>View on Hugging Face</span>
                             <span className="text-xs opacity-70">H</span>
                           </a>
-                          {(model as any).chute_id ? (
-                            <a
-                              role="menuitem"
-                              href={`https://chutes.ai/app/chute/${String((model as any).chute_id)}`}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              onClick={() => setOpenMenuId(null)}
-                              className={`flex w-full items-center justify-between px-3 h-9 text-sm transition-colors ${
-                                theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
-                              }`}
-                            >
-                              <span>Open Chutes</span>
-                              <span className="text-xs opacity-70">C</span>
-                            </a>
-                          ) : (
-                            <div
-                              role="menuitem"
-                              aria-disabled="true"
-                              className={`flex w-full items-center justify-between px-3 h-9 text-sm opacity-50`}
-                            >
-                              <span>Open Chutes</span>
-                              <span className="text-xs opacity-70">C</span>
-                            </div>
-                          )}
+                          {(() => {
+                            const er = enrichedMap[liveKey(model.uid, model.model)];
+                            if (er && er.chute_id) {
+                              return (
+                                <a
+                                  role="menuitem"
+                                  href={`https://chutes.ai/app/chute/${String(er.chute_id)}`}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  onClick={() => setOpenMenuId(null)}
+                                  className={`flex w-full items-center justify-between px-3 h-9 text-sm transition-colors ${
+                                    theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                                  }`}
+                                >
+                                  <span>Open Chutes</span>
+                                  <span className="text-xs opacity-70">C</span>
+                                </a>
+                              );
+                            }
+                            return (
+                              <div
+                                role="menuitem"
+                                aria-disabled="true"
+                                className={`flex w-full items-center justify-between px-3 h-9 text-sm opacity-50`}
+                              >
+                                <span>Open Chutes</span>
+                                <span className="text-xs opacity-70">C</span>
+                              </div>
+                            );
+                          })()}
                           <div className={`px-3 py-2 border-t text-[11px] font-mono opacity-70 ${
                             theme === 'dark' ? 'border-white/30' : 'border-gray-300'
                           }`}>
@@ -775,6 +828,11 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                     <div><span className="font-bold">Eligible:</span> {model.eligible ? 'Yes' : 'No'}</div>
                     <div><span className="font-bold">PTS:</span> {fmt(model.pts, 4)}</div>
                     <div><span className="font-bold">Weight:</span> {fmt(model.weight, 4)}</div>
+                    <div><span className="font-bold">Hotkey:</span> {(() => { const er = enrichedMap[liveKey(model.uid, model.model)]; return er ? er.hotkey : '—'; })()}</div>
+                    <div><span className="font-bold">Success %:</span> {(() => { const er = enrichedMap[liveKey(model.uid, model.model)]; return er && er.success_rate_percent != null ? `${er.success_rate_percent.toFixed(1)}%` : '—'; })()}</div>
+                    <div><span className="font-bold">Avg Latency (s):</span> {(() => { const er = enrichedMap[liveKey(model.uid, model.model)]; return er && er.avg_latency != null ? er.avg_latency.toFixed(2) : '—'; })()}</div>
+                    <div><span className="font-bold">Total Rollouts:</span> {(() => { const er = enrichedMap[liveKey(model.uid, model.model)]; return er && er.total_rollouts != null ? er.total_rollouts.toLocaleString() : '—'; })()}</div>
+                    <div><span className="font-bold">Last Rollout:</span> {(() => { const er = enrichedMap[liveKey(model.uid, model.model)]; return er ? fmtTs(er.last_rollout_at) : '—'; })()}</div>
                     <div><span className="font-bold">SAT:</span> {fmt(model.sat)}</div>
                     <div><span className="font-bold">ABD:</span> {fmt(model.abd)}</div>
                     <div><span className="font-bold">DED:</span> {fmt(model.ded)}</div>
