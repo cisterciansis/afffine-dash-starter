@@ -3,6 +3,7 @@ import { Monitor, Moon, Sun, Code, ExternalLink, Activity } from 'lucide-react';
 import Header from './components/Header';
 import OverviewTable from './components/OverviewTable';
 import ModelGrid from './components/ModelGrid';
+import ValidatorSummary from './components/ValidatorSummary';
 import CodeViewer from './components/CodeViewer';
 import { useTheme } from './hooks/useTheme';
 import { useModelsData } from './hooks/useModelsData';
@@ -87,6 +88,25 @@ function App() {
                 ALL MODELS
               </div>
             </button>
+            <button
+              onClick={() => setActiveTab('validator')}
+              className={`px-6 py-3 font-mono text-xs uppercase tracking-wider border-r-2 transition-colors ${
+                activeTab === 'validator'
+                  ? theme === 'dark'
+                    ? 'bg-gray-800 text-white border-white'
+                    : 'bg-white text-gray-900 border-gray-300'
+                  : theme === 'dark'
+                    ? 'bg-black text-gray-300 border-white hover:bg-gray-800 hover:text-white'
+                    : 'bg-cream-100 text-gray-600 border-gray-300 hover:bg-white hover:text-gray-800'
+              }`}
+            >
+              Validator
+              <div className={`text-xs mt-1 font-mono ${
+                theme === 'dark' ? 'text-gray-400' : 'text-gray-500'
+              }`}>
+                SUMMARY GRID
+              </div>
+            </button>
             {environments.map((env) => (
               <button
                 key={env.id}
@@ -117,6 +137,8 @@ function App() {
             environments={environments}
             theme={theme}
           />
+        ) : activeTab === 'validator' ? (
+          <ValidatorSummary theme={theme} />
         ) : (
           <>
             {/* Current Environment Info */}
