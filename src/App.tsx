@@ -6,11 +6,11 @@ import ActivityFeed from './components/ActivityFeed';
 import { useTheme } from './hooks/useTheme';
 import { useEnvironments } from './contexts/EnvironmentsContext';
 import EnvironmentPage from './pages/EnvironmentPage';
-import NetworkActivityChart from './components/NetworkActivityChart';
-import EnvironmentStatsChart from './components/EnvironmentStatsChart';
-import MinerEfficiencyChart from './components/MinerEfficiencyChart';
-import GpuMarketShareDonut from './components/GpuMarketShareDonut';
-import CostPerformanceScatter from './components/CostPerformanceScatter';
+const NetworkActivityChart = React.lazy(() => import('./components/NetworkActivityChart'));
+const EnvironmentStatsChart = React.lazy(() => import('./components/EnvironmentStatsChart'));
+const MinerEfficiencyChart = React.lazy(() => import('./components/MinerEfficiencyChart'));
+const GpuMarketShareDonut = React.lazy(() => import('./components/GpuMarketShareDonut'));
+const CostPerformanceScatter = React.lazy(() => import('./components/CostPerformanceScatter'));
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -288,15 +288,31 @@ function App() {
                   </div>
                 </div>
 
-                <div className="space-y-6">
-                  <NetworkActivityChart theme={theme} />
-                  <EnvironmentStatsChart theme={theme} />
-                  <MinerEfficiencyChart theme={theme} />
+                <React.Suspense
+                  fallback={
+                    <div className="space-y-6">
+                      <div className="h-64 border-2 rounded-none flex items-center justify-center">
+                        <span className="text-xs font-mono">Loading charts…</span>
+                      </div>
+                      <div className="h-64 border-2 rounded-none flex items-center justify-center">
+                        <span className="text-xs font-mono">Loading charts…</span>
+                      </div>
+                      <div className="h-64 border-2 rounded-none flex items-center justify-center">
+                        <span className="text-xs font-mono">Loading charts…</span>
+                      </div>
+                    </div>
+                  }
+                >
+                  <div className="space-y-6">
+                    <NetworkActivityChart theme={theme} />
+                    <EnvironmentStatsChart theme={theme} />
+                    <MinerEfficiencyChart theme={theme} />
 
-                  {/* Advanced Insights */}
-                  <GpuMarketShareDonut theme={theme} />
-                  <CostPerformanceScatter theme={theme} />
-                </div>
+                    {/* Advanced Insights */}
+                    <GpuMarketShareDonut theme={theme} />
+                    <CostPerformanceScatter theme={theme} />
+                  </div>
+                </React.Suspense>
               </div>
             }
           />

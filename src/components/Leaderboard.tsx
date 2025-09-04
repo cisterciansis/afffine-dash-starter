@@ -55,7 +55,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ theme, limit = 0 }) => {
   // Grid columns to match OverviewTable's compact, aligned layout
   // Columns: Rank | Hotkey | Model | Rollouts | Avg Score | Success % | Avg Latency | Last UID
   const gridCols =
-    'grid grid-cols-[56px_minmax(0,1.1fr)_minmax(0,1.1fr)_104px_96px_96px_128px_88px] gap-2 items-center';
+    'grid grid-cols-[56px_minmax(0,1.1fr)_minmax(0,1.1fr)_104px_96px_96px_128px_88px_112px] gap-2 items-center';
 
   const dash = '—';
   const fmt = (n: number | null | undefined, digits = 2) => (n == null ? dash : n.toFixed(digits));
@@ -127,6 +127,7 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ theme, limit = 0 }) => {
                 <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Success %</div>
                 <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Latency (s)</div>
                 <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Last UID</div>
+                <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actions</div>
               </div>
             </div>
 
@@ -159,6 +160,48 @@ const Leaderboard: React.FC<LeaderboardProps> = ({ theme, limit = 0 }) => {
                       </div>
                       <div className={`text-sm font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
                         {r.last_seen_uid}
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <a
+                          href={`https://huggingface.co/${r.model}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className={`inline-flex h-8 px-2 items-center justify-center rounded-sm border text-xs font-mono ${
+                            theme === 'dark'
+                              ? 'border-white text-white hover:bg-gray-800'
+                              : 'border-gray-400 text-gray-700 hover:bg-gray-100'
+                          }`}
+                          title="View on Hugging Face"
+                        >
+                          HF
+                        </a>
+                        {r.chute_id ? (
+                          <a
+                            href={`https://chutes.ai/app/chute/${r.chute_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className={`inline-flex h-8 px-2 items-center justify-center rounded-sm border text-xs font-mono ${
+                              theme === 'dark'
+                                ? 'border-white text-white hover:bg-gray-800'
+                                : 'border-gray-400 text-gray-700 hover:bg-gray-100'
+                            }`}
+                            title="Open Chutes"
+                          >
+                            Chutes
+                          </a>
+                        ) : (
+                          <span
+                            className={`inline-flex h-8 px-2 items-center justify-center rounded-sm border text-xs font-mono opacity-50 ${
+                              theme === 'dark'
+                                ? 'border-white text-white'
+                                : 'border-gray-400 text-gray-700'
+                            }`}
+                            title="No Chutes deployment"
+                            aria-disabled="true"
+                          >
+                            Chutes
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>

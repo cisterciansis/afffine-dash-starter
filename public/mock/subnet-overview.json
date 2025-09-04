@@ -15,7 +15,8 @@
     "success_rate_percent": 82.5,
     "avg_latency": 1.23,
     "total_rollouts": 345,
-    "last_rollout_at": "2025-08-30T14:23:00Z"
+    "last_rollout_at": "2025-08-30T14:23:00Z",
+    "chute_id": "alpha-001"
   },
   {
     "hotkey": "hk_beta",
@@ -33,7 +34,8 @@
     "success_rate_percent": 60.3,
     "avg_latency": 1.8,
     "total_rollouts": 210,
-    "last_rollout_at": "2025-08-29T19:05:12Z"
+    "last_rollout_at": "2025-08-29T19:05:12Z",
+    "chute_id": "beta-002"
   },
   {
     "hotkey": "hk_gamma",
@@ -51,6 +53,7 @@
     "success_rate_percent": 91.2,
     "avg_latency": 0.95,
     "total_rollouts": 512,
-    "last_rollout_at": "2025-08-31T03:47:28Z"
+    "last_rollout_at": "2025-08-31T03:47:28Z",
+    "chute_id": "gamma-003"
   }
 ]

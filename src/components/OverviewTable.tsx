@@ -1,37 +1,170 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { ChevronDown, ChevronRight, Check, MoreVertical } from 'lucide-react';
 import { fetchSubnetOverview, SubnetOverviewRow } from '../services/api';
 import { useQuery } from '@tanstack/react-query';
 import { useEnvironments } from '../contexts/EnvironmentsContext';
 import { Skeleton, SkeletonText } from './Skeleton';
+import { useValidatorSummary } from '../hooks/useValidatorSummary';
 
 interface OverviewTableProps {
   environments?: any[]; // kept for compatibility with existing App.tsx; not used
   theme: 'light' | 'dark';
 }
 
-type DisplayRow = SubnetOverviewRow & { uniqueId: string };
+type HistoricalDisplayRow = SubnetOverviewRow & { uniqueId: string };
+
+// Live (API) display row derived from summary endpoint
+type LiveDisplayRow = {
+  uniqueId: string;
+  uid: string;
+  model: string;
+  rev: string;
+  avgScore: number | null;
+  successRatePercent?: number | null; // not available in live; kept for compatibility
+  weight: number | null;
+  eligible: boolean;
+  sat: number | null;
+  abd: number | null;
+  ded: number | null;
+  elr: number | null;
+  pts: number | null;
+  // Optional granular levels if present
+  l1?: number | null;
+  l2?: number | null;
+  l3?: number | null;
+  l4?: number | null;
+};
 
 const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
-  const { data, error: queryError, isLoading } = useQuery({
+  // View mode (Historical = DB queries, Live = Public API)
+  const [viewMode, setViewMode] = useState<'historical' | 'live'>('live');
+
+  // Historical: keep existing data flow exactly the same
+  const {
+    data: historicalData,
+    error: historicalQueryError,
+    isLoading: isHistoricalLoading,
+  } = useQuery({
     queryKey: ['subnet-overview'],
     queryFn: fetchSubnetOverview,
     staleTime: 60000, // 1 min: show cached data when revisiting; background refresh runs separately
-    refetchInterval: 6000, // refresh every 6s
+    enabled: viewMode === 'historical', // Do not fetch historical until user selects it
+    refetchInterval: viewMode === 'historical' ? 6000 : false, // Only poll when viewing historical
     refetchOnMount: false, // do not refetch immediately on mount if cache exists
   });
-  const rows: DisplayRow[] = (data ?? []).map((r) => ({
+
+  const historicalRows: HistoricalDisplayRow[] = (historicalData ?? []).map((r) => ({
     ...r,
     uniqueId: `${r.uid}-${r.model}-${r.rev}`,
   }));
-  const loading = isLoading && rows.length === 0;
-  const errorMsg = queryError ? (queryError instanceof Error ? queryError.message : String(queryError)) : null;
+
+  // Live: uses new public API hook
+  const {
+    data: liveSummary,
+    loading: isLiveLoading,
+    error: liveError,
+  } = useValidatorSummary();
+
+  const liveRows: LiveDisplayRow[] = useMemo(() => {
+    if (!liveSummary) return [];
+    const cols = liveSummary.columns || [];
+
+    const idx = (name: string) => cols.indexOf(name);
+    const iUID = idx('UID');
+    const iModel = idx('Model');
+    const iRev = idx('Rev');
+    const iSAT = idx('SAT');
+    const iABD = idx('ABD');
+    const iDED = idx('DED');
+    const iELR = idx('ELR');
+    const iL1 = idx('L1');
+    const iL2 = idx('L2');
+    const iL3 = idx('L3');
+    const iL4 = idx('L4');
+    const iPts = idx('Pts');
+    const iElig = idx('Elig');
+    const iWgt = idx('Wgt');
+
+    const parseScore = (v: unknown): number | null => {
+      if (v == null) return null;
+      const str = String(v).replace(/\*/g, '');
+      const [score] = str.split('/');
+      const n = parseFloat(score);
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const parseNum = (v: unknown): number | null => {
+      if (v == null || v === '') return null;
+      const n = typeof v === 'number' ? v : parseFloat(String(v));
+      return Number.isFinite(n) ? n : null;
+    };
+
+    const parseBoolY = (v: unknown): boolean => {
+      if (v == null) return false;
+      return String(v).trim().toUpperCase().startsWith('Y');
+    };
+
+    return liveSummary.rows.map((row) => {
+      const uid = String(row[iUID] ?? '');
+      const model = String(row[iModel] ?? '');
+      const rev = String(row[iRev] ?? '');
+
+      const sat = parseScore(row[iSAT]);
+      const abd = parseScore(row[iABD]);
+      const ded = parseScore(row[iDED]);
+      const elr = parseScore(row[iELR]);
+
+      const envScores = [sat, abd, ded, elr].filter((n): n is number => n != null);
+      const avgScore = envScores.length ? envScores.reduce((a, b) => a + b, 0) / envScores.length : null;
+
+      const weight = parseNum(row[iWgt]);
+      const pts = parseNum(row[iPts]);
+      const eligible = parseBoolY(row[iElig]);
+
+      const l1 = parseNum(row[iL1]);
+      const l2 = parseNum(row[iL2]);
+      const l3 = parseNum(row[iL3]);
+      const l4 = parseNum(row[iL4]);
+
+      return {
+        uniqueId: `live-${uid}-${model}-${rev}`,
+        uid,
+        model,
+        rev,
+        avgScore,
+        successRatePercent: null,
+        weight,
+        eligible,
+        sat,
+        abd,
+        ded,
+        elr,
+        pts,
+        l1,
+        l2,
+        l3,
+        l4,
+      };
+    });
+  }, [liveSummary]);
+
+  // Unify rows/flags based on mode for rendering/pagination
+  const rows = (viewMode === 'historical' ? historicalRows : liveRows) as Array<any & { uniqueId: string; eligible: boolean }>;
+  const loading = viewMode === 'historical'
+    ? isHistoricalLoading && historicalRows.length === 0
+    : isLiveLoading && liveRows.length === 0;
+  const errorMsg = viewMode === 'historical'
+    ? (historicalQueryError ? (historicalQueryError instanceof Error ? historicalQueryError.message : String(historicalQueryError)) : null)
+    : (liveError ?? null);
+
   const [expandedModel, setExpandedModel] = useState<string | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   const [hoveredRowId, setHoveredRowId] = useState<string | null>(null);
+
   // Pagination state
   const [pageSize, setPageSize] = useState<number>(20);
   const [page, setPage] = useState<number>(1);
+
   // Environments from global context (dynamic)
   const { environments: envs, loading: envLoading } = useEnvironments();
 
@@ -44,7 +177,6 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   const endIndex = Math.min(rows.length, startIndex + pageSize);
   const pagedRows = rows.slice(startIndex, startIndex + pageSize);
 
-  
   // Reset to first page when rows count or page size changes
   useEffect(() => {
     setPage(1);
@@ -55,7 +187,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
-  const fmt = (n: number | null | undefined) => (n == null ? '—' : n.toFixed(1));
+  const fmt = (n: number | null | undefined, digits = 1) => (n == null ? '—' : n.toFixed(digits));
   const fmtTs = (iso: string | null | undefined) => (!iso ? '—' : new Date(iso).toLocaleString());
   const dash = '—';
   const midTrunc = (s: string, max = 36) => {
@@ -91,12 +223,15 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
         return;
       }
       if (key === 'h') {
-        window.open(`https://huggingface.co/affine-subnet/model-${row.uid}`, '_blank', 'noopener,noreferrer');
+        window.open(`https://huggingface.co/${String((row as any).model)}`, '_blank', 'noopener,noreferrer');
         if (openMenuId) setOpenMenuId(null);
         return;
       }
       if (key === 'c') {
-        window.open(`https://chutes.ai/deploy/${row.uid}`, '_blank', 'noopener,noreferrer');
+        const chuteId = (row as any).chute_id;
+        if (chuteId) {
+          window.open(`https://chutes.ai/app/chute/${String(chuteId)}`, '_blank', 'noopener,noreferrer');
+        }
         if (openMenuId) setOpenMenuId(null);
         return;
       }
@@ -114,11 +249,38 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
           ? 'border-white bg-black'
           : 'border-gray-300 bg-cream-100'
       }`}>
-        <h3 className={`text-lg font-mono font-bold mb-3 ${
-          theme === 'dark' ? 'text-white' : 'text-gray-900'
-        }`}>
-          SUBNET OVERVIEW
-        </h3>
+        <div className="flex items-center justify-between mb-3">
+          <h3 className={`text-lg font-mono font-bold ${
+            theme === 'dark' ? 'text-white' : 'text-gray-900'
+          }`}>
+            SUBNET OVERVIEW
+          </h3>
+
+          {/* Live / Historical toggle */}
+          <div className="inline-flex items-center gap-0">
+            <button
+              onClick={() => setViewMode('live')}
+              className={`h-8 px-3 text-xs font-mono border rounded-l-sm ${viewMode === 'live'
+                  ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
+                  : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
+                }`}
+              aria-pressed={viewMode === 'live'}
+            >
+              Live
+            </button>
+            <button
+              onClick={() => setViewMode('historical')}
+              className={`h-8 px-3 text-xs font-mono border rounded-r-sm -ml-px ${viewMode === 'historical'
+                  ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
+                  : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
+                }`}
+              aria-pressed={viewMode === 'historical'}
+            >
+              Historical
+            </button>
+          </div>
+        </div>
+
         <div className="grid grid-cols-3 gap-4">
           <div className="text-center">
             <div className={`text-2xl font-mono font-bold ${
@@ -228,7 +390,9 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rev</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Score</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Success %</div>
-            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Latency (s)</div>
+            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {viewMode === 'live' ? 'Weight' : 'Avg Latency (s)'}
+            </div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Eligible</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actions</div>
           </div>
@@ -269,7 +433,9 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
               ))}
             </div>
           )}
-          {!loading && !errorMsg && pagedRows.map((model) => (
+
+          {/* Historical rows */}
+          {viewMode === 'historical' && !loading && !errorMsg && pagedRows.map((model: HistoricalDisplayRow) => (
             <div key={model.uniqueId} onMouseEnter={() => setHoveredRowId(model.uniqueId)} onMouseLeave={() => setHoveredRowId(prev => (prev === model.uniqueId ? null : prev))}>
               {/* Main Row */}
               <div className={`p-3 hover:bg-opacity-50 transition-colors ${
@@ -367,7 +533,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                           </button>
                           <a
                             role="menuitem"
-                            href={`https://huggingface.co/affine-subnet/model-${model.uid}`}
+                            href={`https://huggingface.co/${model.model}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             onClick={() => setOpenMenuId(null)}
@@ -378,19 +544,30 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                             <span>View on Hugging Face</span>
                             <span className="text-xs opacity-70">H</span>
                           </a>
-                          <a
-                            role="menuitem"
-                            href={`https://chutes.ai/deploy/${model.uid}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={() => setOpenMenuId(null)}
-                            className={`flex w-full items-center justify-between px-3 h-9 text-sm transition-colors ${
-                              theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
-                            }`}
-                          >
-                            <span>Open Chutes</span>
-                            <span className="text-xs opacity-70">C</span>
-                          </a>
+                          {model.chute_id ? (
+                            <a
+                              role="menuitem"
+                              href={`https://chutes.ai/app/chute/${model.chute_id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setOpenMenuId(null)}
+                              className={`flex w-full items-center justify-between px-3 h-9 text-sm transition-colors ${
+                                theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              <span>Open Chutes</span>
+                              <span className="text-xs opacity-70">C</span>
+                            </a>
+                          ) : (
+                            <div
+                              role="menuitem"
+                              aria-disabled="true"
+                              className={`flex w-full items-center justify-between px-3 h-9 text-sm opacity-50`}
+                            >
+                              <span>Open Chutes</span>
+                              <span className="text-xs opacity-70">C</span>
+                            </div>
+                          )}
                           <div className={`px-3 py-2 border-t text-[11px] font-mono opacity-70 ${
                             theme === 'dark' ? 'border-white/30' : 'border-gray-300'
                           }`}>
@@ -403,7 +580,7 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                 </div>
               </div>
 
-              {/* Expanded Details */}
+              {/* Expanded Details (Historical) */}
               {expandedModel === model.uniqueId && (
                 <div
                   id={`details-${model.uniqueId}`}
@@ -429,6 +606,184 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
                         <div key={env}><span className="font-bold">{env}:</span> {fmt(score)}</div>
                       );
                     })}
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Live rows */}
+          {viewMode === 'live' && !loading && !errorMsg && pagedRows.map((model: LiveDisplayRow) => (
+            <div key={model.uniqueId} onMouseEnter={() => setHoveredRowId(model.uniqueId)} onMouseLeave={() => setHoveredRowId(prev => (prev === model.uniqueId ? null : prev))}>
+              {/* Main Row */}
+              <div className={`p-3 hover:bg-opacity-50 transition-colors ${
+                theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-cream-50'
+              }`}>
+                <div className={`${gridCols} text-center`}>
+                  <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {String(model.uid)}
+                  </div>
+                  <div className={`text-sm font-mono truncate whitespace-nowrap text-left ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} title={model.model}>
+                    {midTrunc(model.model, 48)}
+                  </div>
+                  <div className={`text-xs font-mono whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`} title={model.rev}>
+                    {midTrunc(String(model.rev), 10)}
+                  </div>
+                  <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {fmt(model.avgScore)}
+                  </div>
+                  <div className={`text-sm font-mono font-bold tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+                    {/* Success % not available in live summary */}
+                    —
+                  </div>
+                  <div className={`text-sm font-mono tabular-nums whitespace-nowrap ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                    {/* In Live view, show Weight instead of Avg Latency */}
+                    {model.weight == null ? dash : model.weight.toFixed(4)}
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {model.eligible ? (
+                      <Check
+                        size={16}
+                        className={theme === 'dark' ? 'text-green-400' : 'text-green-600'}
+                      />
+                    ) : (
+                      <div className={`text-sm font-mono ${theme === 'dark' ? 'text-gray-300' : 'text-gray-600'}`}>
+                        {dash}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    {/* Toggle details control (hotkey: T) */}
+                    <button
+                      onClick={() => toggleExpanded(model.uniqueId)}
+                      aria-label={`Toggle details for model ${model.uid}`}
+                      aria-expanded={expandedModel === model.uniqueId}
+                      aria-controls={`details-${model.uniqueId}`}
+                      className={`inline-flex h-8 w-8 items-center justify-center rounded-sm border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                        theme === 'dark'
+                          ? 'border-white text-white hover:bg-gray-800'
+                          : 'border-gray-400 text-gray-700 hover:bg-gray-100'
+                      }`}
+                      title="Toggle details (T)"
+                    >
+                      {expandedModel === model.uniqueId ? 
+                        <ChevronDown size={16} /> : 
+                        <ChevronRight size={16} />
+                      }
+                    </button>
+
+                    {/* Actions dropdown menu */}
+                    <div className="relative">
+                      <button
+                        onClick={() => setOpenMenuId(openMenuId === model.uniqueId ? null : model.uniqueId)}
+                        aria-haspopup="menu"
+                        aria-expanded={openMenuId === model.uniqueId}
+                        aria-controls={`actions-${model.uniqueId}`}
+                        className={`inline-flex h-8 w-8 items-center justify-center rounded-sm border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                          theme === 'dark'
+                            ? 'border-white text-white hover:bg-gray-800'
+                            : 'border-gray-400 text-gray-700 hover:bg-gray-100'
+                        }`}
+                        title="Actions (open menu)"
+                      >
+                        <MoreVertical size={16} />
+                        <span className="sr-only">Open actions menu</span>
+                      </button>
+
+                      {openMenuId === model.uniqueId && (
+                        <div
+                          id={`actions-${model.uniqueId}`}
+                          role="menu"
+                          aria-label={`Actions for model ${model.uid}`}
+                          className={`absolute right-0 mt-1 w-56 z-20 rounded-sm border shadow-lg ${
+                            theme === 'dark'
+                              ? 'bg-gray-900 border-white text-white'
+                              : 'bg-white border-gray-300 text-gray-900'
+                          }`}
+                        >
+                          <button
+                            role="menuitem"
+                            onClick={() => { toggleExpanded(model.uniqueId); setOpenMenuId(null); }}
+                            className={`flex w-full items-center justify-between px-3 h-9 text-sm text-left transition-colors ${
+                              theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <span>Toggle details</span>
+                            <span className="text-xs opacity-70">T</span>
+                          </button>
+                          <a
+                            role="menuitem"
+                            href={`https://huggingface.co/${model.model}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            onClick={() => setOpenMenuId(null)}
+                            className={`flex w-full items-center justify-between px-3 h-9 text-sm transition-colors ${
+                              theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                            }`}
+                          >
+                            <span>View on Hugging Face</span>
+                            <span className="text-xs opacity-70">H</span>
+                          </a>
+                          {(model as any).chute_id ? (
+                            <a
+                              role="menuitem"
+                              href={`https://chutes.ai/app/chute/${String((model as any).chute_id)}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              onClick={() => setOpenMenuId(null)}
+                              className={`flex w-full items-center justify-between px-3 h-9 text-sm transition-colors ${
+                                theme === 'dark' ? 'hover:bg-gray-800' : 'hover:bg-gray-100'
+                              }`}
+                            >
+                              <span>Open Chutes</span>
+                              <span className="text-xs opacity-70">C</span>
+                            </a>
+                          ) : (
+                            <div
+                              role="menuitem"
+                              aria-disabled="true"
+                              className={`flex w-full items-center justify-between px-3 h-9 text-sm opacity-50`}
+                            >
+                              <span>Open Chutes</span>
+                              <span className="text-xs opacity-70">C</span>
+                            </div>
+                          )}
+                          <div className={`px-3 py-2 border-t text-[11px] font-mono opacity-70 ${
+                            theme === 'dark' ? 'border-white/30' : 'border-gray-300'
+                          }`}>
+                            Shortcuts active while menu is open: T, H, C, Esc
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Expanded Details (Live) */}
+              {expandedModel === model.uniqueId && (
+                <div
+                  id={`details-${model.uniqueId}`}
+                  role="region"
+                  aria-label={`Details for model ${model.uid}`}
+                  className={`px-3 pb-3 text-left ${theme === 'dark' ? 'bg-gray-900/50' : 'bg-cream-50'}`}
+                >
+                  <div className="text-xs font-mono grid grid-cols-2 gap-2">
+                    <div><span className="font-bold">UID:</span> {String(model.uid)}</div>
+                    <div><span className="font-bold">Rev:</span> {String(model.rev)}</div>
+                    <div><span className="font-bold">Avg Score:</span> {fmt(model.avgScore)}</div>
+                    <div><span className="font-bold">Eligible:</span> {model.eligible ? 'Yes' : 'No'}</div>
+                    <div><span className="font-bold">PTS:</span> {fmt(model.pts, 4)}</div>
+                    <div><span className="font-bold">Weight:</span> {fmt(model.weight, 4)}</div>
+                    <div><span className="font-bold">SAT:</span> {fmt(model.sat)}</div>
+                    <div><span className="font-bold">ABD:</span> {fmt(model.abd)}</div>
+                    <div><span className="font-bold">DED:</span> {fmt(model.ded)}</div>
+                    <div><span className="font-bold">ELR:</span> {fmt(model.elr)}</div>
+                    {/* Optional levels if present */}
+                    {typeof model.l1 === 'number' || model.l1 == null ? <div><span className="font-bold">L1:</span> {fmt(model.l1)}</div> : null}
+                    {typeof model.l2 === 'number' || model.l2 == null ? <div><span className="font-bold">L2:</span> {fmt(model.l2)}</div> : null}
+                    {typeof model.l3 === 'number' || model.l3 == null ? <div><span className="font-bold">L3:</span> {fmt(model.l3)}</div> : null}
+                    {typeof model.l4 === 'number' || model.l4 == null ? <div><span className="font-bold">L4:</span> {fmt(model.l4)}</div> : null}
                   </div>
                 </div>
               )}

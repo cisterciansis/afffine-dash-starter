@@ -12,6 +12,7 @@ export default async function handler(req, res) {
           hotkey,
           MAX(uid) AS last_seen_uid,
           model,
+          MAX((extra->'miner_chute'->>'chute_id')) AS chute_id,
           COUNT(*) AS total_rollouts,
           AVG(score) AS average_score,
           (SUM(CASE WHEN success THEN 1 ELSE 0 END)::float / COUNT(*)) * 100 AS success_rate_percent,

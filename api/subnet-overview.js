@@ -79,7 +79,8 @@ export default async function handler(req, res) {
             AVG(score) AS overall_avg_score,
             (SUM(CASE WHEN success THEN 1 ELSE 0 END)::float / COUNT(*)) * 100 AS success_rate_percent,
             AVG(latency_seconds) AS avg_latency,
-            MAX(ingested_at) AS last_rollout_at
+            MAX(ingested_at) AS last_rollout_at,
+            MAX((extra->'miner_chute'->>'chute_id')) AS chute_id
           FROM public.affine_results
           WHERE ingested_at > NOW() - INTERVAL '${envWindowDays}'
           GROUP BY hotkey, model, revision
@@ -96,7 +97,8 @@ export default async function handler(req, res) {
         om.success_rate_percent,
         om.avg_latency,
         om.total_rollouts,
-        om.last_rollout_at
+        om.last_rollout_at,
+        om.chute_id
       FROM
         base_metrics b
       JOIN
@@ -104,7 +106,7 @@ export default async function handler(req, res) {
       JOIN
         overall_metrics om ON b.hotkey = om.hotkey AND b.model = om.model AND b.revision = om.revision
       GROUP BY
-        b.hotkey, b.model, b.revision, e.is_eligible, om.overall_avg_score, om.success_rate_percent, om.avg_latency, om.total_rollouts, om.last_rollout_at
+        b.hotkey, b.model, b.revision, e.is_eligible, om.overall_avg_score, om.success_rate_percent, om.avg_latency, om.total_rollouts, om.last_rollout_at, om.chute_id
       ORDER BY
         overall_avg_score DESC;
     `;

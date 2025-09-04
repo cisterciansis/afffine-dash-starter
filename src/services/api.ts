@@ -8,6 +8,7 @@ export type LeaderboardRow = {
   hotkey: string;
   last_seen_uid: number;
   model: string;
+  chute_id: string | null;
   total_rollouts: number;
   average_score: number;
   success_rate_percent: number;
@@ -213,6 +214,7 @@ export type SubnetOverviewRow = {
   model: string;
   rev: string;
   uid: number;
+  chute_id: string | null;
   sat: number | null;
   abd: number | null;
   ded: number | null;
