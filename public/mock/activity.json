@@ -1,0 +1,92 @@
+[
+  {
+    "ingested_at": "2025-08-31T12:00:10Z",
+    "hotkey": "hk_alpha",
+    "uid": 345,
+    "model": "affine-small-1",
+    "env_name": "SAT",
+    "score": 0.712,
+    "success": true
+  },
+  {
+    "ingested_at": "2025-08-31T12:02:45Z",
+    "hotkey": "hk_beta",
+    "uid": 278,
+    "model": "affine-base-2",
+    "env_name": "ABD",
+    "score": 0.598,
+    "success": false
+  },
+  {
+    "ingested_at": "2025-08-31T12:05:21Z",
+    "hotkey": "hk_gamma",
+    "uid": 612,
+    "model": "affine-large-3",
+    "env_name": "ELR",
+    "score": 0.811,
+    "success": true
+  },
+  {
+    "ingested_at": "2025-08-31T12:06:03Z",
+    "hotkey": "hk_alpha",
+    "uid": 346,
+    "model": "affine-small-1",
+    "env_name": "DED",
+    "score": 0.675,
+    "success": true
+  },
+  {
+    "ingested_at": "2025-08-31T12:08:39Z",
+    "hotkey": "hk_delta",
+    "uid": 151,
+    "model": "affine-x-4",
+    "env_name": "SAT",
+    "score": 0.632,
+    "success": true
+  },
+  {
+    "ingested_at": "2025-08-31T12:12:07Z",
+    "hotkey": "hk_epsilon",
+    "uid": 403,
+    "model": "affine-pro-5",
+    "env_name": "ABD",
+    "score": 0.721,
+    "success": true
+  },
+  {
+    "ingested_at": "2025-08-31T12:14:55Z",
+    "hotkey": "hk_beta",
+    "uid": 279,
+    "model": "affine-base-2",
+    "env_name": "ELR",
+    "score": 0.612,
+    "success": false
+  },
+  {
+    "ingested_at": "2025-08-31T12:16:42Z",
+    "hotkey": "hk_gamma",
+    "uid": 613,
+    "model": "affine-large-3",
+    "env_name": "SAT",
+    "score": 0.842,
+    "success": true
+  },
+  {
+    "ingested_at": "2025-08-31T12:18:31Z",
+    "hotkey": "hk_delta",
+    "uid": 152,
+    "model": "affine-x-4",
+    "env_name": "DED",
+    "score": 0.601,
+    "success": false
+  },
+  {
+    "ingested_at": "2025-08-31T12:20:00Z",
+    "hotkey": "hk_alpha",
+    "uid": 347,
+    "model": "affine-small-1",
+    "env_name": "ABD",
+    "score": 0.699,
+    "success": true
+  }
+]

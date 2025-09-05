@@ -1,0 +1,36 @@
+[
+  { "period": "2025-08-10", "hotkey": "hk_alpha", "average_score": 0.72 },
+  { "period": "2025-08-11", "hotkey": "hk_alpha", "average_score": 0.74 },
+  { "period": "2025-08-12", "hotkey": "hk_alpha", "average_score": 0.71 },
+  { "period": "2025-08-13", "hotkey": "hk_alpha", "average_score": 0.76 },
+  { "period": "2025-08-14", "hotkey": "hk_alpha", "average_score": 0.75 },
+  { "period": "2025-08-15", "hotkey": "hk_alpha", "average_score": 0.77 },
+
+  { "period": "2025-08-10", "hotkey": "hk_beta", "average_score": 0.68 },
+  { "period": "2025-08-11", "hotkey": "hk_beta", "average_score": 0.69 },
+  { "period": "2025-08-12", "hotkey": "hk_beta", "average_score": 0.70 },
+  { "period": "2025-08-13", "hotkey": "hk_beta", "average_score": 0.71 },
+  { "period": "2025-08-14", "hotkey": "hk_beta", "average_score": 0.70 },
+  { "period": "2025-08-15", "hotkey": "hk_beta", "average_score": 0.72 },
+
+  { "period": "2025-08-10", "hotkey": "hk_gamma", "average_score": 0.64 },
+  { "period": "2025-08-11", "hotkey": "hk_gamma", "average_score": 0.66 },
+  { "period": "2025-08-12", "hotkey": "hk_gamma", "average_score": 0.65 },
+  { "period": "2025-08-13", "hotkey": "hk_gamma", "average_score": 0.67 },
+  { "period": "2025-08-14", "hotkey": "hk_gamma", "average_score": 0.66 },
+  { "period": "2025-08-15", "hotkey": "hk_gamma", "average_score": 0.68 },
+
+  { "period": "2025-08-10", "hotkey": "hk_delta", "average_score": 0.58 },
+  { "period": "2025-08-11", "hotkey": "hk_delta", "average_score": 0.60 },
+  { "period": "2025-08-12", "hotkey": "hk_delta", "average_score": 0.62 },
+  { "period": "2025-08-13", "hotkey": "hk_delta", "average_score": 0.63 },
+  { "period": "2025-08-14", "hotkey": "hk_delta", "average_score": 0.61 },
+  { "period": "2025-08-15", "hotkey": "hk_delta", "average_score": 0.62 },
+
+  { "period": "2025-08-10", "hotkey": "hk_epsilon", "average_score": 0.55 },
+  { "period": "2025-08-11", "hotkey": "hk_epsilon", "average_score": 0.57 },
+  { "period": "2025-08-12", "hotkey": "hk_epsilon", "average_score": 0.56 },
+  { "period": "2025-08-13", "hotkey": "hk_epsilon", "average_score": 0.58 },
+  { "period": "2025-08-14", "hotkey": "hk_epsilon", "average_score": 0.59 },
+  { "period": "2025-08-15", "hotkey": "hk_epsilon", "average_score": 0.60 }
+]

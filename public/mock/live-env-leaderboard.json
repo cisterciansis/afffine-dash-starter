@@ -1,0 +1,52 @@
+[
+  {
+    "hotkey": "hk_abc123",
+    "last_seen_uid": 101,
+    "model": "example/model-sat-large",
+    "revision": "v1",
+    "total_rollouts": 84,
+    "average_score": 87.4,
+    "success_rate_percent": 92.1,
+    "avg_latency": 1.23
+  },
+  {
+    "hotkey": "hk_def456",
+    "last_seen_uid": 88,
+    "model": "example/model-sat-medium",
+    "revision": "v2",
+    "total_rollouts": 63,
+    "average_score": 85.9,
+    "success_rate_percent": 89.7,
+    "avg_latency": 1.45
+  },
+  {
+    "hotkey": "hk_ghi789",
+    "last_seen_uid": 205,
+    "model": "example/model-sat-small",
+    "revision": "v5",
+    "total_rollouts": 51,
+    "average_score": 82.6,
+    "success_rate_percent": 87.3,
+    "avg_latency": 1.78
+  },
+  {
+    "hotkey": "hk_jkl012",
+    "last_seen_uid": 64,
+    "model": "example/model-sat-lite",
+    "revision": null,
+    "total_rollouts": 44,
+    "average_score": 78.2,
+    "success_rate_percent": 85.0,
+    "avg_latency": 2.04
+  },
+  {
+    "hotkey": "hk_mno345",
+    "last_seen_uid": 312,
+    "model": "example/model-sat-next",
+    "revision": "v3",
+    "total_rollouts": 39,
+    "average_score": 76.1,
+    "success_rate_percent": 80.5,
+    "avg_latency": 1.95
+  }
+]

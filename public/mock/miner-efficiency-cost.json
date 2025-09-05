@@ -1,0 +1,7 @@
+[
+  { "hotkey": "miner_1", "model": "meta-llama/llama-3-70b", "avg_score": 0.82, "avg_token_cost_usd": 275.00 },
+  { "hotkey": "miner_2", "model": "mistralai/mixtral-8x7b", "avg_score": 0.78, "avg_token_cost_usd": 195.25 },
+  { "hotkey": "miner_3", "model": "meta-llama/llama-3-8b", "avg_score": 0.71, "avg_token_cost_usd": 55.10 },
+  { "hotkey": "miner_4", "model": "mistralai/mistral-7b", "avg_score": 0.65, "avg_token_cost_usd": 40.00 },
+  { "hotkey": "miner_5", "model": "tiiuae/falcon-40b", "avg_score": 0.69, "avg_token_cost_usd": 120.75 }
+]

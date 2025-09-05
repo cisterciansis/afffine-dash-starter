@@ -1,0 +1,6 @@
+[
+  { "env_name": "SAT", "total_rollouts": 1200, "average_score": 0.68, "success_rate_percent": 82.1 },
+  { "env_name": "ABD", "total_rollouts": 980,  "average_score": 0.62, "success_rate_percent": 71.4 },
+  { "env_name": "DED", "total_rollouts": 860,  "average_score": 0.59, "success_rate_percent": 66.7 },
+  { "env_name": "ELR", "total_rollouts": 1340, "average_score": 0.75, "success_rate_percent": 90.3 }
+]

@@ -12,7 +12,7 @@ interface Model {
   score: number;
   epochs: number;
   last_updated: string;
-  status: 'training' | 'evaluating' | 'idle';
+  status: string;
   daily_rollouts: number;
   miner_block: number;
   recent_activity: number;

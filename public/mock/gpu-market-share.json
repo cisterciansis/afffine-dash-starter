@@ -1,0 +1,9 @@
+[
+  { "gpus": "[\"H100\"]", "miner_count": 12 },
+  { "gpus": "[\"A100\"]", "miner_count": 9 },
+  { "gpus": "[\"H200\"]", "miner_count": 5 },
+  { "gpus": "[\"A40\"]", "miner_count": 4 },
+  { "gpus": "[\"RTX 4090\"]", "miner_count": 3 },
+  { "gpus": "[\"A100\",\"A40\"]", "miner_count": 2 },
+  { "gpus": "[\"H100\",\"A100\"]", "miner_count": 1 }
+]

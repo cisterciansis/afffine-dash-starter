@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { X, ExternalLink, Code } from 'lucide-react';
 
 interface Environment {
@@ -16,6 +16,35 @@ interface CodeViewerProps {
 }
 
 const CodeViewer: React.FC<CodeViewerProps> = ({ environment, theme, onClose }) => {
+  // Fetch code directly from the affine repo (raw) for this environment file
+  const [code, setCode] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+  const rawUrl = useMemo(
+    () => `https://raw.githubusercontent.com/AffineFoundation/affine/main/affine/envs/${environment.id}.py`,
+    [environment.id]
+  );
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    setCode(null);
+    fetch(rawUrl, { method: 'GET' })
+      .then(async (res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        if (!cancelled) setCode(text);
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [rawUrl]);
   // Mock code content - will be replaced with actual repo fetching
   const mockCode = `# ${environment.name} Environment
 # Bittensor Affine Subnet Implementation
@@ -128,11 +157,23 @@ __all__ = ['${environment.name.replace('-', '')}Environment']`;
 
         {/* Code Content */}
         <div className="p-4 overflow-auto max-h-[70vh]">
-          <pre className={`font-mono text-sm leading-relaxed ${
-            theme === 'dark' ? 'text-white' : 'text-gray-800'
-          }`}>
-            <code>{mockCode}</code>
-          </pre>
+          {loading ? (
+            <div className={`font-mono text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              Loading code…
+            </div>
+          ) : error ? (
+            <div className={`font-mono text-sm ${theme === 'dark' ? 'text-red-400' : 'text-red-600'}`}>
+              Failed to load code from {rawUrl}: {error}
+            </div>
+          ) : code ? (
+            <pre className={`font-mono text-sm leading-relaxed ${theme === 'dark' ? 'text-white' : 'text-gray-800'}`}>
+              <code>{code}</code>
+            </pre>
+          ) : (
+            <div className={`font-mono text-sm ${theme === 'dark' ? 'text-gray-300' : 'text-gray-700'}`}>
+              No code available.
+            </div>
+          )}
         </div>
 
         {/* Footer */}
@@ -150,7 +191,7 @@ __all__ = ['${environment.name.replace('-', '')}Environment']`;
               <span className={`font-mono text-xs ${
                 theme === 'dark' ? 'text-gray-300' : 'text-gray-500'
               }`}>
-                Python 3.9+ • OpenAI Gym
+                Python 3.9+ • Affine Gym
               </span>
             </div>
           </div>
