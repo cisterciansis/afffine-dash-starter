@@ -43,6 +43,13 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
   const [enriching, setEnriching] = useState<boolean>(false);
   const [enrichmentError, setEnrichmentError] = useState<string | null>(null);
 
+  // Sorting (applies to Live view)
+  const [sortField, setSortField] = useState<'weight' | 'uid' | 'avgScore' | 'success' | 'pts' | 'model'>('weight');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+
+  // Helper to build a stable key for enrichment lookups
+  const liveKey = (uid: string | number, model: string) => `${Number(uid)}|${model.toLowerCase()}`;
+
   // Historical: keep existing data flow exactly the same
   const {
     data: historicalData,
@@ -152,8 +159,57 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
     });
   }, [liveSummary]);
 
-  // Unify rows/flags based on mode for rendering/pagination
-  const rows = (viewMode === 'historical' ? historicalRows : liveRows) as Array<any & { uniqueId: string; eligible: boolean }>;
+  // Unify rows/flags based on mode; apply sorting for Live view
+  const baseRows = (viewMode === 'historical' ? historicalRows : liveRows) as Array<any & { uniqueId: string; eligible: boolean }>;
+  const rows = useMemo(() => {
+    if (viewMode !== 'live') return baseRows;
+
+    const arr = [...(baseRows as any[])];
+
+    const getVal = (r: any): any => {
+      switch (sortField) {
+        case 'weight': {
+          const v = typeof r.weight === 'number' ? r.weight : (r.weight == null ? null : Number(r.weight));
+          return Number.isFinite(v) ? v : -Infinity;
+        }
+        case 'uid': {
+          const n = Number(r.uid);
+          return Number.isFinite(n) ? n : Infinity;
+        }
+        case 'avgScore': {
+          const v = typeof r.avgScore === 'number' ? r.avgScore : (r.avgScore == null ? null : Number(r.avgScore));
+          return Number.isFinite(v) ? v : -Infinity;
+        }
+        case 'success': {
+          const er = enrichedMap[liveKey(r.uid, r.model)];
+          const v = er?.success_rate_percent;
+          return typeof v === 'number' && Number.isFinite(v) ? v : -Infinity;
+        }
+        case 'pts': {
+          const v = typeof r.pts === 'number' ? r.pts : (r.pts == null ? null : Number(r.pts));
+          return Number.isFinite(v) ? v : -Infinity;
+        }
+        case 'model': {
+          return String(r.model || '').toLowerCase();
+        }
+        default:
+          return 0;
+      }
+    };
+
+    arr.sort((a, b) => {
+      const av = getVal(a);
+      const bv = getVal(b);
+      if (typeof av === 'string' || typeof bv === 'string') {
+        const cmp = String(av).localeCompare(String(bv));
+        return sortDir === 'asc' ? cmp : -cmp;
+      }
+      const cmp = (av as number) - (bv as number);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+
+    return arr;
+  }, [baseRows, viewMode, sortField, sortDir, enrichedMap]);
   const loading = viewMode === 'historical'
     ? isHistoricalLoading && historicalRows.length === 0
     : isLiveLoading && liveRows.length === 0;
@@ -186,14 +242,15 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
     setPage(1);
   }, [pageSize, rows.length]);
 
+  // Reset to first page when sort changes or mode toggles
+  useEffect(() => {
+    setPage(1);
+  }, [sortField, sortDir, viewMode]);
+
   // Clamp page if it exceeds totalPages
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
-
-  // Helper to build a stable key for enrichment lookups
-  const liveKey = (uid: string | number, model: string) => `${Number(uid)}|${model.toLowerCase()}`;
-
 
   // Enrich only the currently visible page of live rows to minimize DB load
   useEffect(() => {
@@ -240,6 +297,17 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
     if (s.length <= max) return s;
     const half = Math.floor((max - 1) / 2);
     return s.slice(0, half) + '…' + s.slice(s.length - half);
+  };
+
+  // Sorting helpers for Live view via clickable column headers
+  const toggleSort = (field: 'weight' | 'uid' | 'avgScore' | 'success' | 'model') => {
+    if (viewMode !== 'live') return;
+    setSortField(prev => (prev === field ? prev : field));
+    setSortDir(prev => (sortField === field ? (prev === 'asc' ? 'desc' : 'asc') : 'desc'));
+  };
+  const sortIndicator = (field: 'weight' | 'uid' | 'avgScore' | 'success' | 'model') => {
+    if (viewMode !== 'live' || sortField !== field) return '';
+    return sortDir === 'asc' ? '▲' : '▼';
   };
 
   const toggleExpanded = (uniqueId: string) => {
@@ -301,28 +369,31 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
             SUBNET OVERVIEW
           </h3>
 
-          {/* Live / Historical toggle */}
-          <div className="inline-flex items-center gap-0">
-            <button
-              onClick={() => setViewMode('live')}
-              className={`h-8 px-3 text-xs font-mono border rounded-l-sm ${viewMode === 'live'
-                  ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
-                  : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
-                }`}
-              aria-pressed={viewMode === 'live'}
-            >
-              Live
-            </button>
-            <button
-              onClick={() => setViewMode('historical')}
-              className={`h-8 px-3 text-xs font-mono border rounded-r-sm -ml-px ${viewMode === 'historical'
-                  ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
-                  : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
-                }`}
-              aria-pressed={viewMode === 'historical'}
-            >
-              Historical
-            </button>
+          {/* Live / Historical toggle + Live sort controls */}
+          <div className="flex items-center gap-2">
+            <div className="inline-flex items-center gap-0">
+              <button
+                onClick={() => setViewMode('live')}
+                className={`h-8 px-3 text-xs font-mono border rounded-l-sm ${viewMode === 'live'
+                    ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
+                    : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
+                  }`}
+                aria-pressed={viewMode === 'live'}
+              >
+                Live
+              </button>
+              <button
+                onClick={() => setViewMode('historical')}
+                className={`h-8 px-3 text-xs font-mono border rounded-r-sm -ml-px ${viewMode === 'historical'
+                    ? (theme === 'dark' ? 'bg-white text-black border-white' : 'bg-gray-900 text-white border-gray-900')
+                    : (theme === 'dark' ? 'border-white text-white hover:bg-gray-800' : 'border-gray-400 text-gray-700 hover:bg-gray-100')
+                  }`}
+                aria-pressed={viewMode === 'historical'}
+              >
+                Historical
+              </button>
+            </div>
+
           </div>
         </div>
 
@@ -429,14 +500,62 @@ const OverviewTable: React.FC<OverviewTableProps> = ({ theme }) => {
         <div className={`p-3 border-b-2 ${
           theme === 'dark' ? 'border-white bg-gray-900' : 'border-gray-300 bg-cream-50'
         }`}>
-          <div className={`${gridCols} text-center`}>
-            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>UID</div>
-            <div className={`text-xs font-mono uppercase tracking-wider font-bold text-left ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Model</div>
-            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rev</div>
-            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Avg Score</div>
-            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Success %</div>
+            <div className={`${gridCols} text-center`}>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
-              {viewMode === 'live' ? 'Weight' : 'Avg Latency (s)'}
+              <button
+                disabled={viewMode !== 'live'}
+                onClick={() => toggleSort('uid')}
+                className={`inline-flex items-center gap-1 ${viewMode === 'live' ? 'cursor-pointer underline-offset-2 hover:underline' : 'opacity-60 cursor-default'}`}
+                aria-disabled={viewMode !== 'live'}
+              >
+                <span>UID</span>
+                <span>{sortIndicator('uid')}</span>
+              </button>
+            </div>
+            <div className={`text-xs font-mono uppercase tracking-wider font-bold text-left ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <button
+                disabled={viewMode !== 'live'}
+                onClick={() => toggleSort('model')}
+                className={`inline-flex items-center gap-1 ${viewMode === 'live' ? 'cursor-pointer underline-offset-2 hover:underline' : 'opacity-60 cursor-default'}`}
+                aria-disabled={viewMode !== 'live'}
+              >
+                <span>Model</span>
+                <span>{sortIndicator('model')}</span>
+              </button>
+            </div>
+            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Rev</div>
+            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <button
+                disabled={viewMode !== 'live'}
+                onClick={() => toggleSort('avgScore')}
+                className={`inline-flex items-center gap-1 ${viewMode === 'live' ? 'cursor-pointer underline-offset-2 hover:underline' : 'opacity-60 cursor-default'}`}
+                aria-disabled={viewMode !== 'live'}
+              >
+                <span>Avg Score</span>
+                <span>{sortIndicator('avgScore')}</span>
+              </button>
+            </div>
+            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              <button
+                disabled={viewMode !== 'live'}
+                onClick={() => toggleSort('success')}
+                className={`inline-flex items-center gap-1 ${viewMode === 'live' ? 'cursor-pointer underline-offset-2 hover:underline' : 'opacity-60 cursor-default'}`}
+                aria-disabled={viewMode !== 'live'}
+              >
+                <span>Success %</span>
+                <span>{sortIndicator('success')}</span>
+              </button>
+            </div>
+            <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>
+              {viewMode === 'live' ? (
+                <button
+                  onClick={() => toggleSort('weight')}
+                  className="inline-flex items-center gap-1 cursor-pointer underline-offset-2 hover:underline"
+                >
+                  <span>Weight</span>
+                  <span>{sortIndicator('weight')}</span>
+                </button>
+              ) : 'Avg Latency (s)'}
             </div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Eligible</div>
             <div className={`text-xs font-mono uppercase tracking-wider font-bold ${theme === 'dark' ? 'text-white' : 'text-gray-900'}`}>Actions</div>
