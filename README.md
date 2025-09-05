@@ -19,7 +19,7 @@ This repo is a Vite React frontend with Vercel-ready Serverless API routes for q
 Use the following connection string as a single `DATABASE_URL` value:
 
 ```
-postgresql://app_reader:ca35a0d8bd31d0d5@database-1.clo68s4ivev.us-east-1.rds.amazonaws.com:5432/postgres
+postgresql://app_reader:ca35a0d8bd31d0d5@database-1.clo608s4ivev.us-east-1.rds.amazonaws.com:5432/postgres
 ```
 
 Notes:
