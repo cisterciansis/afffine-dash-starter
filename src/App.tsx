@@ -6,6 +6,8 @@ import ActivityFeed from './components/ActivityFeed';
 import { useTheme } from './hooks/useTheme';
 import { useEnvironments } from './contexts/EnvironmentsContext';
 import EnvironmentPage from './pages/EnvironmentPage';
+
+// Lazy-load heavier components for better initial page load
 const NetworkActivityChart = React.lazy(() => import('./components/NetworkActivityChart'));
 const EnvironmentStatsChart = React.lazy(() => import('./components/EnvironmentStatsChart'));
 const MinerEfficiencyChart = React.lazy(() => import('./components/MinerEfficiencyChart'));
@@ -15,14 +17,14 @@ const CostPerformanceScatter = React.lazy(() => import('./components/CostPerform
 function App() {
   const { theme, toggleTheme } = useTheme();
   const { environments, loading: envLoading, error: envError } = useEnvironments();
-
   const navigate = useNavigate();
 
-  // Responsive controls for environment tabs overflow
+  // State for responsive tab management
   const [maxVisible, setMaxVisible] = React.useState<number>(6);
   const [moreOpen, setMoreOpen] = React.useState(false);
   const moreRef = React.useRef<HTMLDivElement | null>(null);
 
+  // Effect to adjust visible tabs based on window width
   React.useEffect(() => {
     const update = () => {
       const w = window.innerWidth;
@@ -38,10 +40,10 @@ function App() {
     return () => window.removeEventListener('resize', update);
   }, []);
 
+  // Effect to close the "More" dropdown when clicking outside
   React.useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (!moreRef.current) return;
-      if (!moreRef.current.contains(e.target as Node)) {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) {
         setMoreOpen(false);
       }
     };
@@ -49,12 +51,12 @@ function App() {
     return () => document.removeEventListener('mousedown', onDocClick);
   }, []);
 
-  // Keyboard shortcut: press "n" then up to 3 digits to jump to tabs (0 = Overview)
-  const captureRef = React.useRef(false);
-  const bufferRef = React.useRef<string>('');
-  const timeoutRef = React.useRef<number | null>(null);
-
+  // Effect for keyboard navigation shortcut (press 'n' then digits)
   React.useEffect(() => {
+    const captureRef = React.useRef(false);
+    const bufferRef = React.useRef<string>('');
+    const timeoutRef = React.useRef<number | null>(null);
+
     const clearTimer = () => {
       if (timeoutRef.current) {
         window.clearTimeout(timeoutRef.current);
@@ -142,20 +144,12 @@ function App() {
     if (active) {
       return `${base} ${theme === 'dark' ? 'bg-gray-800 text-white border-white' : 'bg-white text-gray-900 border-gray-300'}`;
     }
-    return `${base} ${theme === 'dark'
-      ? 'bg-black text-gray-300 border-white hover:bg-gray-800 hover:text-white'
-      : 'bg-cream-100 text-gray-600 border-gray-300 hover:bg-white hover:text-gray-800'
-    }`;
+    return `${base} ${theme === 'dark' ? 'bg-black text-gray-300 border-white hover:bg-gray-800 hover:text-white' : 'bg-cream-100 text-gray-600 border-gray-300 hover:bg-white hover:text-gray-800'}`;
   };
 
   return (
-    <div className={`min-h-screen transition-colors duration-300 ${
-      theme === 'dark' 
-        ? 'bg-black text-white' 
-        : 'bg-cream-50 text-gray-800'
-    }`}>
+    <div className={`min-h-screen transition-colors duration-300 ${theme === 'dark' ? 'bg-black text-white' : 'bg-cream-50 text-gray-800'}`}>
       <Header theme={theme} toggleTheme={toggleTheme} />
-      
       <main className="container mx-auto px-6 py-8">
         {/* Top Navigation Tabs */}
         <div className="mb-6">
@@ -168,21 +162,15 @@ function App() {
             >
               <div className="flex flex-col items-start">
                 <span className="truncate">Overview</span>
-                <span
-                  className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mt-1 text-[10px] leading-none font-mono`}
-                >
+                <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-500'} mt-1 text-[10px] leading-none font-mono`}>
                   N + 0
                 </span>
               </div>
             </NavLink>
 
             {/* Dynamic environment tabs */}
-            {envLoading && (
-              <div className={tabClass(false)}>Loading…</div>
-            )}
-            {!envLoading && envError && (
-              <div className={tabClass(false)}>Error</div>
-            )}
+            {envLoading && <div className={tabClass(false)}>Loading…</div>}
+            {!envLoading && envError && <div className={tabClass(false)}>Error</div>}
             {!envLoading && !envError && (() => {
               const items = environments.map((env, i) => ({ env, i }));
               const visible = items.slice(0, maxVisible);
@@ -198,9 +186,7 @@ function App() {
                     >
                       <div className="flex flex-col items-start min-w-0">
                         <span className="truncate max-w-[12rem]">{env}</span>
-                        <span
-                          className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mt-1 text-[10px] leading-none font-mono`}
-                        >
+                        <span className={`${theme === 'dark' ? 'text-gray-400' : 'text-gray-600'} mt-1 text-[10px] leading-none font-mono`}>
                           N + {i + 1}
                         </span>
                       </div>
@@ -218,14 +204,7 @@ function App() {
                         title="Show more environments"
                       >
                         <span className="sr-only">More environments</span>
-                        <svg
-                          width="16"
-                          height="16"
-                          viewBox="0 0 24 24"
-                          fill="currentColor"
-                          aria-hidden="true"
-                          className="mx-1"
-                        >
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" className="mx-1">
                           <circle cx="12" cy="5" r="2"></circle>
                           <circle cx="12" cy="12" r="2"></circle>
                           <circle cx="12" cy="19" r="2"></circle>
@@ -234,11 +213,7 @@ function App() {
 
                       {moreOpen && (
                         <div
-                          className={`absolute right-0 top-full z-20 w-72 max-h-80 overflow-auto border-2 ${
-                            theme === 'dark'
-                              ? 'bg-gray-900 border-white text-gray-100'
-                              : 'bg-white border-gray-300 text-gray-800'
-                          }`}
+                          className={`absolute right-0 top-full z-20 w-72 max-h-80 overflow-auto border-2 ${theme === 'dark' ? 'bg-gray-900 border-white text-gray-100' : 'bg-white border-gray-300 text-gray-800'}`}
                           role="menu"
                         >
                           <div className="py-1">
@@ -246,15 +221,7 @@ function App() {
                               <NavLink
                                 key={env}
                                 to={`/environment/${encodeURIComponent(env)}`}
-                                className={({ isActive }) =>
-                                  `flex items-center justify-between gap-2 px-3 py-2 font-mono text-sm hover:underline ${
-                                    isActive
-                                      ? theme === 'dark'
-                                        ? 'bg-gray-800'
-                                        : 'bg-cream-100'
-                                      : ''
-                                  }`
-                                }
+                                className={({ isActive }) => `flex items-center justify-between gap-2 px-3 py-2 font-mono text-sm hover:underline ${isActive ? (theme === 'dark' ? 'bg-gray-800' : 'bg-cream-100') : ''}`}
                                 onClick={() => setMoreOpen(false)}
                                 role="menuitem"
                               >
@@ -291,15 +258,9 @@ function App() {
                 <React.Suspense
                   fallback={
                     <div className="space-y-6">
-                      <div className="h-64 border-2 rounded-none flex items-center justify-center">
-                        <span className="text-xs font-mono">Loading charts…</span>
-                      </div>
-                      <div className="h-64 border-2 rounded-none flex items-center justify-center">
-                        <span className="text-xs font-mono">Loading charts…</span>
-                      </div>
-                      <div className="h-64 border-2 rounded-none flex items-center justify-center">
-                        <span className="text-xs font-mono">Loading charts…</span>
-                      </div>
+                      <div className="h-64 border-2 rounded-none flex items-center justify-center"><span className="text-xs font-mono">Loading charts…</span></div>
+                      <div className="h-64 border-2 rounded-none flex items-center justify-center"><span className="text-xs font-mono">Loading charts…</span></div>
+                      <div className="h-64 border-2 rounded-none flex items-center justify-center"><span className="text-xs font-mono">Loading charts…</span></div>
                     </div>
                   }
                 >
@@ -307,8 +268,6 @@ function App() {
                     <NetworkActivityChart theme={theme} />
                     <EnvironmentStatsChart theme={theme} />
                     <MinerEfficiencyChart theme={theme} />
-
-                    {/* Advanced Insights */}
                     <GpuMarketShareDonut theme={theme} />
                     <CostPerformanceScatter theme={theme} />
                   </div>
