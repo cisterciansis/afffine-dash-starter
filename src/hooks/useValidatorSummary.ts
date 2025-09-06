@@ -12,7 +12,7 @@ interface SummaryResponse {
  * Primary new endpoint for live miners view.
  * Fallback to the previous summary endpoint if the new one is unavailable.
  */
-const PRIMARY_URL = 'http://65.109.19.166:9000/api/miners';
+const PRIMARY_URL = '/api/miners';
 const FALLBACK_URL = 'https://sn120-viewer.onrender.com/api/weights/summary/latest';
 
 // Types for the new miners endpoint
@@ -206,7 +206,100 @@ export const useValidatorSummary = () => {
         const res = await fetch(FALLBACK_URL, { cache: 'no-store' });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const json: SummaryResponse = await res.json();
-        setData(json);
+
+        // Normalize fallback payload to the same column schema used by miners->summary:
+        // ['UID','Model','Rev','SAT','ABD','DED','ELR','L1','L2','L3','L4','Pts','Elig','Wgt']
+        const wantCols = [
+          'UID','Model','Rev','SAT','ABD','DED','ELR','L1','L2','L3','L4','Pts','Elig','Wgt'
+        ];
+
+        const colIndex = (name: string) => json.columns.indexOf(name);
+
+        // Detect if fallback already matches desired shape
+        const alreadyCompatible = wantCols.every((c) => colIndex(c) !== -1);
+
+        let normalized: SummaryResponse;
+        if (alreadyCompatible) {
+          // Use as-is
+          normalized = json;
+        } else {
+          // Build rows defensively by mapping known/approximate names to our canonical columns
+          // Known alternates seen historically:
+          // - 'Weight' for 'Wgt'
+          // - 'Points' or 'Pts' for Pts
+          // - 'Eligible'/'Elig' for Elig (may be boolean)
+          // - 'UID' sometimes as string
+          // - Missing L1..L4 entirely
+          const alt = {
+            Wgt: colIndex('Wgt') !== -1 ? 'Wgt' : (colIndex('Weight') !== -1 ? 'Weight' : null),
+            Pts: colIndex('Pts') !== -1 ? 'Pts' : (colIndex('Points') !== -1 ? 'Points' : null),
+            Elig: colIndex('Elig') !== -1 ? 'Elig' : (colIndex('Eligible') !== -1 ? 'Eligible' : null),
+          };
+
+          const get = (row: (string | number | null)[], key: string | null): string | number | null => {
+            if (!key) return null;
+            const i = colIndex(key);
+            return i === -1 ? null : row[i];
+          };
+
+          const toYN = (v: unknown): 'Y' | 'N' => {
+            if (typeof v === 'string') {
+              const s = v.trim().toLowerCase();
+              if (s === 'y' || s === 'yes' || s === 'true' || s === '1') return 'Y';
+            }
+            if (typeof v === 'number') return v ? 'Y' : 'N';
+            if (typeof v === 'boolean') return v ? 'Y' : 'N';
+            return 'N';
+          };
+
+          const rows = json.rows.map((r) => {
+            const uid = get(r, 'UID');
+            const model = get(r, 'Model');
+            const rev = get(r, 'Rev') ?? get(r, 'Revision') ?? '';
+
+            const sat = get(r, 'SAT');
+            const abd = get(r, 'ABD');
+            const ded = get(r, 'DED');
+            const elr = get(r, 'ELR');
+
+            // Optional levels
+            const l1 = get(r, 'L1');
+            const l2 = get(r, 'L2');
+            const l3 = get(r, 'L3');
+            const l4 = get(r, 'L4');
+
+            const pts = get(r, alt.Pts);
+            const elig = toYN(get(r, alt.Elig));
+            const wgt = get(r, alt.Wgt);
+
+            return [
+              typeof uid === 'string' ? Number(uid) : (uid as number | null),
+              String(model ?? ''),
+              String(rev ?? ''),
+              sat as number | null,
+              abd as number | null,
+              ded as number | null,
+              elr as number | null,
+              (l1 as number | null) ?? null,
+              (l2 as number | null) ?? null,
+              (l3 as number | null) ?? null,
+              (l4 as number | null) ?? null,
+              (pts as number | null) ?? null,
+              elig,
+              (wgt as number | null) ?? null,
+            ] as (string | number | null)[];
+          });
+
+          normalized = {
+            timestamp: json.timestamp,
+            tail: json.tail,
+            columns: wantCols,
+            rows,
+            raw: json.raw,
+          };
+        }
+
+        setData(normalized);
         setError(null);
         return;
       } catch (fallbackErr) {

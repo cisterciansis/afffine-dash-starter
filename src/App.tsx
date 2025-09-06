@@ -13,6 +13,9 @@ const EnvironmentStatsChart = React.lazy(() => import('./components/EnvironmentS
 const MinerEfficiencyChart = React.lazy(() => import('./components/MinerEfficiencyChart'));
 const GpuMarketShareDonut = React.lazy(() => import('./components/GpuMarketShareDonut'));
 const CostPerformanceScatter = React.lazy(() => import('./components/CostPerformanceScatter'));
+const SubsetWinnersMatrix = React.lazy(() => import('./components/SubsetWinnersMatrix'));
+const PointsBySubsetSize = React.lazy(() => import('./components/PointsBySubsetSize'));
+const SubsetWinnersLedger = React.lazy(() => import('./components/SubsetWinnersLedger'));
 
 function App() {
   const { theme, toggleTheme } = useTheme();
@@ -268,6 +271,14 @@ function App() {
                     <NetworkActivityChart theme={theme} />
                     <EnvironmentStatsChart theme={theme} />
                     <MinerEfficiencyChart theme={theme} />
+<<<<<<< HEAD
+=======
+
+                    {/* Advanced Insights */}
+                    <SubsetWinnersMatrix theme={theme} />
+                    <PointsBySubsetSize theme={theme} />
+                    <SubsetWinnersLedger theme={theme} />
+>>>>>>> d02d046 (add some visuals not done. fix deploy)
                     <GpuMarketShareDonut theme={theme} />
                     <CostPerformanceScatter theme={theme} />
                   </div>
