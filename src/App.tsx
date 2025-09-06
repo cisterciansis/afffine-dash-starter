@@ -27,6 +27,11 @@ function App() {
   const [moreOpen, setMoreOpen] = React.useState(false);
   const moreRef = React.useRef<HTMLDivElement | null>(null);
 
+  // Refs for keyboard navigation state (must be top-level hooks, not inside effects)
+  const captureRef = React.useRef(false);
+  const bufferRef = React.useRef<string>('');
+  const timeoutRef = React.useRef<number | null>(null);
+
   // Effect to adjust visible tabs based on window width
   React.useEffect(() => {
     const update = () => {
@@ -56,9 +61,7 @@ function App() {
 
   // Effect for keyboard navigation shortcut (press 'n' then digits)
   React.useEffect(() => {
-    const captureRef = React.useRef(false);
-    const bufferRef = React.useRef<string>('');
-    const timeoutRef = React.useRef<number | null>(null);
+    
 
     const clearTimer = () => {
       if (timeoutRef.current) {
