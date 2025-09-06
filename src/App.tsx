@@ -271,14 +271,12 @@ function App() {
                     <NetworkActivityChart theme={theme} />
                     <EnvironmentStatsChart theme={theme} />
                     <MinerEfficiencyChart theme={theme} />
-<<<<<<< HEAD
-=======
 
                     {/* Advanced Insights */}
                     <SubsetWinnersMatrix theme={theme} />
                     <PointsBySubsetSize theme={theme} />
                     <SubsetWinnersLedger theme={theme} />
->>>>>>> d02d046 (add some visuals not done. fix deploy)
+
                     <GpuMarketShareDonut theme={theme} />
                     <CostPerformanceScatter theme={theme} />
                   </div>
